@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os/user"
 	"encoding/json"
 	"github.com/bwmarrin/discordgo"
 	"time"
@@ -13,6 +14,7 @@ import (
 )
 
 var lastMatch string = ""
+var homeDir string = ""
 var debug bool = false
 
 type GameData struct {
@@ -29,7 +31,7 @@ func sendMessage(dg *discordgo.Session, channelId string, msg string) {
 }
 
 func getApiKey() string {
-	dat, err := ioutil.ReadFile("apikey.config")
+	dat, err := ioutil.ReadFile(homeDir + "/.dota-config/apikey.config")
 	if err != nil {
 		panic(err)
 	}
@@ -38,7 +40,7 @@ func getApiKey() string {
 }
 
 func getDiscordToken() string {
-	dat, err := ioutil.ReadFile("discord.config")
+	dat, err := ioutil.ReadFile(homeDir + "/.dota-config/discord.config")
 	if err != nil {
 		panic(err)
 	}
@@ -149,6 +151,12 @@ func main() {
 	if len(argsWithoutProg) > 0 && argsWithoutProg[0] == "debug" {
 		debug = true;
 	}
+
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal( err )
+	}
+	homeDir = usr.HomeDir
 
 	token := getDiscordToken()
 
