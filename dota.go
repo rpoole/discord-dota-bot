@@ -30,12 +30,26 @@ func sendMessage(dg *discordgo.Session, channelId string, msg string) {
 	}
 }
 
+func getLastMatch() string {
+	if _, err := os.Stat(homeDir + "/.dota-config/last_match"); err == nil {
+		dat, err := ioutil.ReadFile(homeDir + "/.dota-config/last_match")
+
+		if err != nil {
+			panic(err)
+		}
+		log.Println("Last Match: " + string(dat))
+		return strings.TrimSpace(string(dat))
+	}
+
+	return ""
+}
+
 func getApiKey() string {
 	dat, err := ioutil.ReadFile(homeDir + "/.dota-config/apikey.config")
 	if err != nil {
 		panic(err)
 	}
-	fmt.Print(string(dat))
+	log.Println("ApiKey: " + string(dat))
 	return strings.TrimSpace(string(dat))
 }
 
@@ -44,7 +58,7 @@ func getDiscordToken() string {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Print(string(dat))
+	log.Println("Discord Token: " + string(dat))
 	return strings.TrimSpace(string(dat))
 }
 
@@ -75,7 +89,7 @@ func getResults(apiKey string) *GameData {
 
 	matchHistoryUrl := "https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/V001/?account_id=" + tricepzId + "&key=" + apiKey
 
-	fmt.Println(matchHistoryUrl)
+	log.Println(matchHistoryUrl)
 
 	data := makeRequest(matchHistoryUrl)
 
@@ -99,6 +113,11 @@ func getResults(apiKey string) *GameData {
 	if currentMatch == lastMatch {
 		log.Printf("Current match is the same as last: %s - %s\n", currentMatch, lastMatch)
 		return nil
+	}
+
+	err := ioutil.WriteFile(homeDir + "/.dota-config/last_match", []byte(currentMatch), 0644)
+	if err != nil {
+		panic(err)
 	}
 
 	lastMatch = currentMatch
@@ -157,6 +176,8 @@ func main() {
 		log.Fatal( err )
 	}
 	homeDir = usr.HomeDir
+
+	lastMatch = getLastMatch()
 
 	token := getDiscordToken()
 
