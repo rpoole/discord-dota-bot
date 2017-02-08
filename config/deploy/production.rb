@@ -9,7 +9,7 @@
 server "138.197.4.16", user: "ralfbot"
 set :deploy_to, "~/test"
 
-after "deploy", "deploy:bundle_install" 
+after "deploy", "deploy:go_build" 
 # role-based syntax
 # ==================
 

@@ -9,9 +9,9 @@ set :application, "discord-dota-bot"
 set :repo_url, "git@github.com:ralfizzle/discord-dota-bot.git"
 
 namespace :deploy do
-	task :bundle_install do
+	task :go_build do
 		on roles :all do
-	 		execute "cd #{release_path} && GOPATH=~/Projects/golang go build dota.go"
+			execute "cd #{release_path} && GOPATH=~/Projects/golang go build dota.go && pkill dota"
 		end
 	end
 end
