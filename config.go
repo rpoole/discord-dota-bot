@@ -20,7 +20,7 @@ func getHomeDir() string {
 }
 
 func getHeroes() string {
-	dat, err := ioutil.ReadFile("heroes.json")
+	dat, err := ioutil.ReadFile(getHomeDir() + "/.dota-config/heroes.json")
 	if err != nil {
 		panic(err)
 	}
