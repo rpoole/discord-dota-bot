@@ -16,9 +16,10 @@ import (
 var lastMatch string = ""
 var homeDir string = ""
 var debug bool = false
+var heroMap map[int]Hero
 
 type GameData struct {
-	matchId, kills, deaths, assists string
+	matchId, kills, deaths, assists, hero string
 	win bool
 }
 
@@ -64,7 +65,7 @@ func getDiscordToken() string {
 
 func makeRequest(url string) map[string]interface{} {
 	response, err := http.Get(url)
-	
+
 	if err != nil {
 		return nil
 	}
@@ -147,6 +148,7 @@ func getResults(apiKey string) *GameData {
 			stats.kills = fmt.Sprintf("%.0f", v.(map[string]interface{})["kills"].(float64))
 			stats.deaths = fmt.Sprintf("%.0f", v.(map[string]interface{})["deaths"].(float64))
 			stats.assists = fmt.Sprintf("%.0f", v.(map[string]interface{})["assists"].(float64))
+			stats.hero = heroMap[int(v.(map[string]interface{})["hero_id"].(float64))].localizedName
 			playerSlot := v.(map[string]interface{})["player_slot"].(float64)
 
 			log.Println(stats)
@@ -171,13 +173,17 @@ func main() {
 		debug = true;
 	}
 
+	heroMap = parseHeroes()
+
 	usr, err := user.Current()
 	if err != nil {
 		log.Fatal( err )
 	}
 	homeDir = usr.HomeDir
 
-	lastMatch = getLastMatch()
+	if !debug {
+		lastMatch = getLastMatch()
+	}
 
 	token := getDiscordToken()
 
@@ -212,7 +218,7 @@ func main() {
 
 			//tricepzId <@111618891402182656>
 
-			summaryMsg := fmt.Sprintf("Tricepz %s his last game with K/D/A: %s/%s/%s", result, stats.kills, stats.deaths, stats.assists)
+			summaryMsg := fmt.Sprintf("Tricepz %s his last game on %s with K/D/A: %s/%s/%s", result, stats.hero, stats.kills, stats.deaths, stats.assists)
 			dotabuffMsg := fmt.Sprintf("https://www.dotabuff.com/matches/%s", stats.matchId)
 			opendotaMsg := fmt.Sprintf("https://www.opendota.com/matches/%s", stats.matchId)
 
