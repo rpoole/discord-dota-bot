@@ -1,23 +1,12 @@
 package main
 
 import (
-	"io/ioutil"
 	"encoding/json"
-	"strings"
 )
 
 type Hero struct {
 	id int
 	name, localizedName string
-}
-
-func getHeroes() string {
-	dat, err := ioutil.ReadFile("heroes.json")
-	if err != nil {
-		panic(err)
-	}
-
-	return strings.TrimSpace(string(dat))
 }
 
 func parseHeroes() map[int]Hero {

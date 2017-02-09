@@ -4,17 +4,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os/user"
 	"encoding/json"
 	"github.com/bwmarrin/discordgo"
 	"time"
 	"log"
-	"strings"
 	"os"
 )
 
 var lastMatch string = ""
-var homeDir string = ""
 var debug bool = false
 var heroMap map[int]Hero
 
@@ -29,38 +26,6 @@ func sendMessage(dg *discordgo.Session, channelId string, msg string) {
 	} else {
 		dg.ChannelMessageSend(channelId, msg)
 	}
-}
-
-func getLastMatch() string {
-	if _, err := os.Stat(homeDir + "/.dota-config/last_match"); err == nil {
-		dat, err := ioutil.ReadFile(homeDir + "/.dota-config/last_match")
-
-		if err != nil {
-			panic(err)
-		}
-		log.Println("Last Match: " + string(dat))
-		return strings.TrimSpace(string(dat))
-	}
-
-	return ""
-}
-
-func getApiKey() string {
-	dat, err := ioutil.ReadFile(homeDir + "/.dota-config/apikey.config")
-	if err != nil {
-		panic(err)
-	}
-	log.Println("ApiKey: " + string(dat))
-	return strings.TrimSpace(string(dat))
-}
-
-func getDiscordToken() string {
-	dat, err := ioutil.ReadFile(homeDir + "/.dota-config/discord.config")
-	if err != nil {
-		panic(err)
-	}
-	log.Println("Discord Token: " + string(dat))
-	return strings.TrimSpace(string(dat))
 }
 
 func makeRequest(url string) map[string]interface{} {
@@ -116,10 +81,7 @@ func getResults(apiKey string) *GameData {
 		return nil
 	}
 
-	err := ioutil.WriteFile(homeDir + "/.dota-config/last_match", []byte(currentMatch), 0644)
-	if err != nil {
-		panic(err)
-	}
+	setLastMatch(currentMatch)
 
 	lastMatch = currentMatch
 
@@ -168,18 +130,14 @@ func getResults(apiKey string) *GameData {
 
 func main() {
 
+	// Check for debug flag.
 	argsWithoutProg := os.Args[1:]
 	if len(argsWithoutProg) > 0 && argsWithoutProg[0] == "debug" {
 		debug = true;
 	}
 
+	// Get our hero map for easy lookups.
 	heroMap = parseHeroes()
-
-	usr, err := user.Current()
-	if err != nil {
-		log.Fatal( err )
-	}
-	homeDir = usr.HomeDir
 
 	if !debug {
 		lastMatch = getLastMatch()
