@@ -10,6 +10,15 @@ import (
 	"os"
 )
 
+func fileContentsToString(configPath string) string {
+	dat, err := ioutil.ReadFile(getHomeDir() + configPath)
+	if err != nil {
+		panic(err)
+	}
+
+	return strings.TrimSpace(string(dat))
+}
+
 func getHomeDir() string {
 	usr, err := user.Current()
 	if err != nil {
@@ -19,45 +28,24 @@ func getHomeDir() string {
 	return usr.HomeDir
 }
 
-func getHeroes() string {
-	dat, err := ioutil.ReadFile(getHomeDir() + "/.dota-config/heroes.json")
-	if err != nil {
-		panic(err)
-	}
-
-	return strings.TrimSpace(string(dat))
-}
-
 func getLastMatch() string {
 	if _, err := os.Stat(getHomeDir() + "/.dota-config/last_match"); err == nil {
-		dat, err := ioutil.ReadFile(getHomeDir() + "/.dota-config/last_match")
-
-		if err != nil {
-			panic(err)
-		}
-		log.Println("Last Match: " + string(dat))
-		return strings.TrimSpace(string(dat))
+		return fileContentsToString("/.dota-config/last_match")
 	}
 
 	return ""
 }
 
+func getHeroes() string {
+	return fileContentsToString("/.dota-config/heroes.json")
+}
+
 func getApiKey() string {
-	dat, err := ioutil.ReadFile(getHomeDir() + "/.dota-config/apikey.config")
-	if err != nil {
-		panic(err)
-	}
-	log.Println("ApiKey: " + string(dat))
-	return strings.TrimSpace(string(dat))
+	return fileContentsToString("/.dota-config/apikey.config")
 }
 
 func getDiscordToken() string {
-	dat, err := ioutil.ReadFile(getHomeDir() + "/.dota-config/discord.config")
-	if err != nil {
-		panic(err)
-	}
-	log.Println("Discord Token: " + string(dat))
-	return strings.TrimSpace(string(dat))
+	return fileContentsToString("/.dota-config/discord.config")
 }
 
 func setLastMatch(currentMatch string) {

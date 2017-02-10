@@ -1,0 +1,64 @@
+{
+	"players": [
+		{
+			"name": "zack",
+			"account_id": "76561198043899518",
+			"dota_id": "83633790"
+		},
+		{
+			"name": "scott",
+			"account_id": "76561198031758954",
+			"dota_id": "71493226"
+		},
+		{
+			"name": "rob",
+			"account_id": "76561198026942332",
+			"dota_id": "66676604"
+		},
+		{
+			"name": "ralph",
+			"account_id": "76561197977345234",
+			"dota_id": "17079506"
+		},
+		{
+			"name": "aaron",
+			"account_id": "76561198021710539",
+			"dota_id": "61444811"
+		},
+		{
+			"name": "jospeh",
+			"account_id": "76561198010457614",
+			"dota_id": "50191886"
+		},
+		{
+			"name": "john",
+			"account_id": "76561198186925302",
+			"dota_id": "226659574"
+		},
+		{
+			"name": "steve",
+			"account_id": "76561197977310218",
+			"dota_id": "17044490"
+		},
+		{
+			"name": "matt",
+			"account_id": "76561197964365391",
+			"dota_id": "4099663"
+		},
+		{
+			"name": "alex",
+			"account_id": "76561197964638003",
+			"dota_id": "4372275"
+		},
+		{
+			"name": "jake",
+			"account_id": "76561198158605918",
+			"dota_id": "198340190"
+		},
+		{
+			"name": "tom",
+			"account_id": "76561198024081774",
+			"dota_id": "63816046"
+		}
+	]
+}
