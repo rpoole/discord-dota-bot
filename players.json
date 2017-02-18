@@ -2,63 +2,68 @@
 	"players": [
 		{
 			"name": "zack",
-			"account_id": "76561198043899518",
-			"dota_id": "83633790"
+			"account_id": "83633790",
+			"steam_id": "76561198043899518"
 		},
 		{
 			"name": "scott",
-			"account_id": "76561198031758954",
-			"dota_id": "71493226"
+			"account_id": "71493226",
+			"steam_id": "76561198031758954"
+		},
+		{
+			"name": "manmoth",
+			"account_id": "149849638",
+			"steam_id": "76561198110115366"
 		},
 		{
 			"name": "rob",
-			"account_id": "76561198026942332",
-			"dota_id": "66676604"
+			"account_id": "66676604",
+			"steam_id": "76561198026942332"
 		},
 		{
 			"name": "ralph",
-			"account_id": "76561197977345234",
-			"dota_id": "17079506"
+			"account_id": "17079506",
+			"steam_id": "76561197977345234"
 		},
 		{
 			"name": "aaron",
-			"account_id": "76561198021710539",
-			"dota_id": "61444811"
+			"account_id": "61444811",
+			"steam_id": "76561198021710539"
 		},
 		{
 			"name": "jospeh",
-			"account_id": "76561198010457614",
-			"dota_id": "50191886"
+			"account_id": "50191886",
+			"steam_id": "76561198010457614"
 		},
 		{
 			"name": "john",
-			"account_id": "76561198186925302",
-			"dota_id": "226659574"
+			"account_id": "226659574",
+			"steam_id": "76561198186925302"
 		},
 		{
 			"name": "steve",
-			"account_id": "76561197977310218",
-			"dota_id": "17044490"
+			"account_id": "17044490",
+			"steam_id": "76561197977310218"
 		},
 		{
 			"name": "matt",
-			"account_id": "76561197964365391",
-			"dota_id": "4099663"
+			"account_id": "4099663",
+			"steam_id": "76561197964365391"
 		},
 		{
 			"name": "alex",
-			"account_id": "76561197964638003",
-			"dota_id": "4372275"
+			"account_id": "4372275",
+			"steam_id": "76561197964638003"
 		},
 		{
 			"name": "jake",
-			"account_id": "76561198158605918",
-			"dota_id": "198340190"
+			"account_id": "198340190",
+			"steam_id": "76561198158605918"
 		},
 		{
 			"name": "tom",
-			"account_id": "76561198024081774",
-			"dota_id": "63816046"
+			"account_id": "63816046",
+			"steam_id": "76561198024081774"
 		}
 	]
 }

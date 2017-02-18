@@ -9,14 +9,17 @@ import (
 	"time"
 	"log"
 	"os"
+	"strings"
 )
 
 var lastMatch string = ""
 var debug bool = false
 var heroMap map[int]Hero
+var playerMap map[string]Player
+var tricepzId string = "83633790"
 
-type GameData struct {
-	matchId, kills, deaths, assists, hero string
+type PlayerData struct {
+	accountId, matchId, kills, deaths, assists, hero string
 	win bool
 }
 
@@ -50,9 +53,7 @@ func makeRequest(url string) map[string]interface{} {
 	return data
 }
 
-func getResults(apiKey string) *GameData {
-	tricepzId := "83633790"
-
+func getResults(apiKey string) map[string]PlayerData {
 	matchHistoryUrl := "https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/V001/?account_id=" + tricepzId + "&key=" + apiKey
 
 	log.Println(matchHistoryUrl)
@@ -99,14 +100,16 @@ func getResults(apiKey string) *GameData {
 
 	radiantWin := data["result"].(map[string]interface{})["radiant_win"].(bool)
 
-	stats := GameData{matchId: currentMatch}
+	friends := make(map[string]PlayerData);
 
 	// Print match IDs
 	for _, v := range playerDetails {
 
 		accountId := fmt.Sprintf("%.0f", v.(map[string]interface{})["account_id"].(float64))
-		if accountId == tricepzId {
-
+		if _, ok := playerMap[accountId]; ok {
+			// Set player data
+			stats := PlayerData{matchId: currentMatch}
+			stats.accountId = accountId
 			stats.kills = fmt.Sprintf("%.0f", v.(map[string]interface{})["kills"].(float64))
 			stats.deaths = fmt.Sprintf("%.0f", v.(map[string]interface{})["deaths"].(float64))
 			stats.assists = fmt.Sprintf("%.0f", v.(map[string]interface{})["assists"].(float64))
@@ -120,13 +123,13 @@ func getResults(apiKey string) *GameData {
 			} else {
 				stats.win = false
 			}
-
-			break
+			friends[accountId] = stats
 		}
 	}
 
-	return &stats
+	return friends
 }
+
 
 func main() {
 
@@ -136,8 +139,9 @@ func main() {
 		debug = true;
 	}
 
-	// Get our hero map for easy lookups.
+	// Get our hero and players map for easy lookups.
 	heroMap = parseHeroes()
+	playerMap = parsePlayers()
 
 	if !debug {
 		lastMatch = getLastMatch()
@@ -165,22 +169,31 @@ func main() {
 	apiKey := getApiKey()
 
 	for {
-		stats := getResults(apiKey)
-		if stats != nil {
+		gameResults := getResults(apiKey)
+		if gameResults != nil {
+
+
 			var result string
-			if stats.win == true {
+			if gameResults[tricepzId].win == true {
 				result = "won"
 			} else {
 				result = "lost"
 			}
 
+			var teamMemberMsg string = ""
+			for _, player := range gameResults {
+				if player.win == gameResults[tricepzId].win && player.accountId != tricepzId {
+					teamMemberMsg += fmt.Sprintf(" - %s as %s with K/D/A: %s/%s/%s\n", strings.Title(playerMap[player.accountId].name), player.hero, player.kills, player.deaths, player.assists)
+				}
+			}
+
 			//tricepzId <@111618891402182656>
 
-			summaryMsg := fmt.Sprintf("Tricepz %s his last game on %s with K/D/A: %s/%s/%s", result, stats.hero, stats.kills, stats.deaths, stats.assists)
-			dotabuffMsg := fmt.Sprintf("https://www.dotabuff.com/matches/%s", stats.matchId)
-			opendotaMsg := fmt.Sprintf("https://www.opendota.com/matches/%s", stats.matchId)
+			summaryMsg := fmt.Sprintf("Tricepz %s his last game as %s with K/D/A: %s/%s/%s", result, gameResults[tricepzId].hero, gameResults[tricepzId].kills, gameResults[tricepzId].deaths, gameResults[tricepzId].assists)
+			dotabuffMsg := fmt.Sprintf("https://www.dotabuff.com/matches/%s", gameResults[tricepzId].matchId)
+			opendotaMsg := fmt.Sprintf("https://www.opendota.com/matches/%s", gameResults[tricepzId].matchId)
 
-			sendMessage(dg, codingId, summaryMsg + "\n" + dotabuffMsg + "\n" + opendotaMsg)
+			sendMessage(dg, codingId, summaryMsg + "\n" + teamMemberMsg + dotabuffMsg + "\n" + opendotaMsg)
 
 		}
 		time.Sleep(time.Second * 10)

@@ -40,6 +40,10 @@ func getHeroes() string {
 	return fileContentsToString("/.dota-config/heroes.json")
 }
 
+func getPlayers() string {
+	return fileContentsToString("/.dota-config/players.json")
+}
+
 func getApiKey() string {
 	return fileContentsToString("/.dota-config/apikey.config")
 }
