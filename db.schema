@@ -1,0 +1,19 @@
+create table players
+	(
+		account_id varchar(20) primary key,
+		name varchar(50),
+		last_match varchar(20)
+	)
+;
+
+insert into players
+	(
+		account_id,
+		name
+	)
+values
+	(
+		"83633790",
+		"zack"
+	)
+;

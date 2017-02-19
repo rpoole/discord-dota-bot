@@ -5,18 +5,20 @@ import (
 	"io/ioutil"
 	"net/http"
 	"encoding/json"
-	"github.com/bwmarrin/discordgo"
 	"time"
 	"log"
 	"os"
 	"strings"
+	"github.com/bwmarrin/discordgo"
+	"github.com/mxk/go-sqlite/sqlite3"
 )
 
 var lastMatch string = ""
 var debug bool = false
 var heroMap map[int]Hero
 var playerMap map[string]Player
-var tricepzId string = "83633790"
+var tricepzId string
+var db *sqlite3.Conn
 
 type PlayerData struct {
 	accountId, matchId, kills, deaths, assists, hero string
@@ -82,8 +84,8 @@ func getResults(apiKey string) map[string]PlayerData {
 		return nil
 	}
 
-	setLastMatch(currentMatch)
-
+	// setLastMatch(currentMatch)
+	db.Exec("update players set last_match = " + currentMatch + " where account_id = " + tricepzId)
 	lastMatch = currentMatch
 
 	matchDetailsUrl := "https://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/V001/?match_id=" + lastMatch + "&key=" + apiKey
@@ -143,15 +145,28 @@ func main() {
 	heroMap = parseHeroes()
 	playerMap = parsePlayers()
 
+	db, _ = sqlite3.Open(getHomeDir() + "/.dota-config/dota.db")
+
+	sql := "SELECT account_id, * FROM players where name = 'zack'"
+	for row, err := db.Query(sql); err == nil; err = row.Next() {
+		row.Scan(&tricepzId)
+		log.Println(tricepzId)
+	}
+
 	if !debug {
-		lastMatch = getLastMatch()
+		sql := "SELECT last_match, * FROM players where name = 'zack'"
+		for row, err := db.Query(sql); err == nil; err = row.Next() {
+			row.Scan(&lastMatch)
+			log.Println(lastMatch)
+		}
+		// lastMatch = getLastMatch()
 	}
 
 	token := getDiscordToken()
 
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 
@@ -161,7 +176,7 @@ func main() {
 	// Open the websocket and begin listening.
 	err = dg.Open()
 	if err != nil {
-		fmt.Println("Error opening Discord session: ", err)
+		log.Println("Error opening Discord session: ", err)
 	}
 
 	// generalId := "111616828899381248"
