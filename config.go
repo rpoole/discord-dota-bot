@@ -7,7 +7,6 @@ import (
 	"strings"
 	"os/user"
 	"log"
-	"os"
 )
 
 func fileContentsToString(configPath string) string {
