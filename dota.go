@@ -12,20 +12,31 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/mxk/go-sqlite/sqlite3"
 )
+//tricepzId <@111618891402182656>
 
 var lastMatch string = ""
+var tricepzId string
+
 var debug bool = false
+
 var heroMap map[int]Hero
 var playerMap map[string]Player
-var tricepzId string
+
 var db *sqlite3.Conn
+var dg *discordgo.Session
+var err error
+
+type GameData struct {
+	duration, radiantScore, direScore float64
+	radiantWin bool
+}
 
 type PlayerData struct {
 	accountId, matchId, kills, deaths, assists, hero string
 	win bool
 }
 
-func sendMessage(dg *discordgo.Session, channelId string, msg string) {
+func sendMessage(channelId string, msg string) {
 	if debug {
 		log.Println(msg)
 	} else {
@@ -55,7 +66,7 @@ func makeRequest(url string) map[string]interface{} {
 	return data
 }
 
-func getResults(apiKey string) map[string]PlayerData {
+func getResults(apiKey string) (GameData, map[string]PlayerData) {
 	matchHistoryUrl := "https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/V001/?account_id=" + tricepzId + "&key=" + apiKey
 
 	log.Println(matchHistoryUrl)
@@ -67,25 +78,18 @@ func getResults(apiKey string) map[string]PlayerData {
 		matches = data["result"].(map[string]interface{})["matches"].([]interface{})
 	} else {
 		fmt.Println(data)
-		return nil
+		return GameData{}, nil
 	}
-
-	// Print match IDs
-	// for _, v := range matches {
-	// 	fmt.Printf("%.0f\n", v.(map[string]interface{})["match_id"])
-	// }
-	// fmt.Printf("%.0f\n", matches[0].(map[string]interface{})["match_id"])
 
 	log.Printf("Got current match id: %.0f\n", matches[0].(map[string]interface{})["match_id"].(float64))
 
 	currentMatch := fmt.Sprintf("%.0f", matches[0].(map[string]interface{})["match_id"].(float64))
 	if currentMatch == lastMatch {
 		log.Printf("Current match is the same as last: %s - %s\n", currentMatch, lastMatch)
-		return nil
+		return GameData{}, nil
 	}
 
-	// setLastMatch(currentMatch)
-	db.Exec("update players set last_match = " + currentMatch + " where account_id = " + tricepzId)
+	db.Exec("UPDATE players SET last_match = " + currentMatch + " WHERE account_id = " + tricepzId)
 	lastMatch = currentMatch
 
 	matchDetailsUrl := "https://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/V001/?match_id=" + lastMatch + "&key=" + apiKey
@@ -97,10 +101,15 @@ func getResults(apiKey string) map[string]PlayerData {
 	if data != nil && data["result"] != nil {
 		playerDetails = data["result"].(map[string]interface{})["players"].([]interface{})
 	} else {
-		return nil
+		return GameData{}, nil
 	}
 
-	radiantWin := data["result"].(map[string]interface{})["radiant_win"].(bool)
+	var game GameData
+
+	game.radiantWin = data["result"].(map[string]interface{})["radiant_win"].(bool)
+	game.duration = data["result"].(map[string]interface{})["duration"].(float64)
+	game.radiantScore = data["result"].(map[string]interface{})["radiant_score"].(float64)
+	game.direScore = data["result"].(map[string]interface{})["dire_score"].(float64)
 
 	friends := make(map[string]PlayerData);
 
@@ -120,16 +129,17 @@ func getResults(apiKey string) map[string]PlayerData {
 
 			log.Println(stats)
 
-			if radiantWin == true && playerSlot < 5 || radiantWin == false && playerSlot > 100 {
+			// Determine if player won.
+			stats.win = false
+			if game.radiantWin == true && playerSlot < 5 || game.radiantWin == false && playerSlot > 100 {
 				stats.win = true
-			} else {
-				stats.win = false
 			}
+
 			friends[accountId] = stats
 		}
 	}
 
-	return friends
+	return game, friends
 }
 
 
@@ -141,37 +151,37 @@ func main() {
 		debug = true;
 	}
 
+	// Get config info.
+	token := getDiscordToken()
+	apiKey := getApiKey()
+
 	// Get our hero and players map for easy lookups.
 	heroMap = parseHeroes()
 	playerMap = parsePlayers()
 
 	db, _ = sqlite3.Open(getHomeDir() + "/.dota-config/dota.db")
 
-	sql := "SELECT account_id, * FROM players where name = 'zack'"
+	// Find tricepz ID.
+	sql := "SELECT account_id, * FROM players WHERE name = 'zack'"
 	for row, err := db.Query(sql); err == nil; err = row.Next() {
 		row.Scan(&tricepzId)
 		log.Println(tricepzId)
 	}
 
+	// Get last match.
 	if !debug {
-		sql := "SELECT last_match, * FROM players where name = 'zack'"
+		sql := "SELECT last_match, * FROM players WHERE name = 'zack'"
 		for row, err := db.Query(sql); err == nil; err = row.Next() {
 			row.Scan(&lastMatch)
 			log.Println(lastMatch)
 		}
-		// lastMatch = getLastMatch()
 	}
 
-	token := getDiscordToken()
-
-	dg, err := discordgo.New("Bot " + token)
+	dg, err = discordgo.New("Bot " + token)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-
-	// Register messageCreate as a callback for the messageCreate events.
-	// dg.AddHandler(messageCreate)
 
 	// Open the websocket and begin listening.
 	err = dg.Open()
@@ -181,34 +191,29 @@ func main() {
 
 	// generalId := "111616828899381248"
 	codingId := "151877780605239296"
-	apiKey := getApiKey()
 
 	for {
-		gameResults := getResults(apiKey)
-		if gameResults != nil {
-
-
+		game, players := getResults(apiKey)
+		if game != (GameData{}) || players != nil {
+			// Set win loss string.
 			var result string
-			if gameResults[tricepzId].win == true {
+			result = "lost"
+			if players[tricepzId].win == true {
 				result = "won"
-			} else {
-				result = "lost"
 			}
 
 			var teamMemberMsg string = ""
-			for _, player := range gameResults {
-				if player.win == gameResults[tricepzId].win && player.accountId != tricepzId {
+			for _, player := range players {
+				if player.win == players[tricepzId].win && player.accountId != tricepzId {
 					teamMemberMsg += fmt.Sprintf(" - %s as %s with K/D/A: %s/%s/%s\n", strings.Title(playerMap[player.accountId].name), player.hero, player.kills, player.deaths, player.assists)
 				}
 			}
 
-			//tricepzId <@111618891402182656>
+			summaryMsg := fmt.Sprintf("Tricepz %s his last game as %s with K/D/A: %s/%s/%s", result, players[tricepzId].hero, players[tricepzId].kills, players[tricepzId].deaths, players[tricepzId].assists)
+			dotabuffMsg := fmt.Sprintf("https://www.dotabuff.com/matches/%s", players[tricepzId].matchId)
+			opendotaMsg := fmt.Sprintf("https://www.opendota.com/matches/%s", players[tricepzId].matchId)
 
-			summaryMsg := fmt.Sprintf("Tricepz %s his last game as %s with K/D/A: %s/%s/%s", result, gameResults[tricepzId].hero, gameResults[tricepzId].kills, gameResults[tricepzId].deaths, gameResults[tricepzId].assists)
-			dotabuffMsg := fmt.Sprintf("https://www.dotabuff.com/matches/%s", gameResults[tricepzId].matchId)
-			opendotaMsg := fmt.Sprintf("https://www.opendota.com/matches/%s", gameResults[tricepzId].matchId)
-
-			sendMessage(dg, codingId, summaryMsg + "\n" + teamMemberMsg + dotabuffMsg + "\n" + opendotaMsg)
+			sendMessage(codingId, summaryMsg + "\n" + teamMemberMsg + dotabuffMsg + "\n" + opendotaMsg)
 
 		}
 		time.Sleep(time.Second * 10)
