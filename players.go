@@ -5,10 +5,11 @@ import (
 )
 
 type Player struct {
-	name, accountId, steamId string
+	name, accountId, steamId, lastMatch string
 }
 
-func parsePlayers() map[string]Player {
+// This returns a map of pointers so me can modify the underlying player fields.
+func parsePlayers() map[string]*Player {
 	playersJson := getPlayers()
 
 	var data map[string]interface{}
@@ -19,14 +20,14 @@ func parsePlayers() map[string]Player {
 
 	players := data["players"].([]interface{})
 
-	playerMap := make(map[string]Player)
+	playerMap := make(map[string]*Player)
 
 	for _, player := range players {
 		name := player.(map[string]interface{})["name"].(string)
 		accountId := player.(map[string]interface{})["account_id"].(string)
 		steamId := player.(map[string]interface{})["steam_id"].(string)
 
-		playerMap[accountId] = Player{name: name, accountId: accountId, steamId: steamId}
+		playerMap[accountId] = &Player{name: name, accountId: accountId, steamId: steamId}
 	}
 
 	return playerMap
