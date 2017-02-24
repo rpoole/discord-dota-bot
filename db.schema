@@ -7,13 +7,19 @@ create table players
 ;
 
 insert into players
-	(
-		account_id,
-		name
-	)
+	(account_id, name)
 values
-	(
-		"83633790",
-		"zack"
-	)
+	("83633790", "zack")
+;
+
+insert into players
+	(account_id, name)
+values
+	("66676604", "rob")
+;
+
+insert into players
+	(account_id, name)
+values
+	("50191886", "joseph")
 ;
