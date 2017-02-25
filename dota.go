@@ -14,6 +14,8 @@ import (
 )
 //tricepzId <@111618891402182656>
 
+const DOTA_ID string = "570"
+
 var lastMatch string = ""
 
 var debug bool = false
@@ -65,6 +67,25 @@ func makeRequest(url string) map[string]interface{} {
 	}
 
 	return data
+}
+
+func isPlayingDota2(apiKey string, player *Player) bool {
+	steamStatusUrl := "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?steamids=" + player.steamId + "&key=" + apiKey
+
+	data := makeRequest(steamStatusUrl)
+
+	var players []interface{}
+	if data != nil && data["response"] != nil {
+		players = data["response"].(map[string]interface{})["players"].([]interface{})
+
+		if _, ok := players[0].(map[string]interface{})["game_id"]; ok {
+			if players[0].(map[string]interface{})["game_id"].(string) == DOTA_ID {
+				return true
+			}
+		}
+	}
+
+	return false;
 }
 
 func getResults(apiKey string, player *Player) (GameData, map[string]PlayerData) {
