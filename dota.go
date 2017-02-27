@@ -23,7 +23,6 @@ var debug bool = false
 var playerDb map[string]*Player
 var heroMap map[int]Hero
 var playerMap map[string]*Player
-var skipMap map[string]bool
 
 var db *sqlite3.Conn
 var dg *discordgo.Session
@@ -88,35 +87,45 @@ func isPlayingDota2(apiKey string, player *Player) bool {
 	return false;
 }
 
-func getResults(apiKey string, player *Player) (GameData, map[string]PlayerData) {
-	matchHistoryUrl := "https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/V001/?account_id=" + player.accountId + "&key=" + apiKey
+func getMostRecentMatches(apiKey string) map[string]bool {
+	matches := make(map[string]bool)
 
-	log.Println(matchHistoryUrl)
+	for accountId, player := range playerDb {
+		matchHistoryUrl := "https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/V001/?account_id=" + player.accountId + "&key=" + apiKey
 
-	data := makeRequest(matchHistoryUrl)
+		data := makeRequest(matchHistoryUrl)
 
-	var matches []interface{}
-	if data != nil && data["result"] != nil {
-		matches = data["result"].(map[string]interface{})["matches"].([]interface{})
-	} else {
-		fmt.Println(data)
-		return GameData{}, nil
+		var matchesJson []interface{}
+		if data != nil && data["result"] != nil {
+			matchesJson = data["result"].(map[string]interface{})["matches"].([]interface{})
+		} else {
+			continue
+		}
+
+		currentMatch := fmt.Sprintf("%.0f", matchesJson[0].(map[string]interface{})["match_id"].(float64))
+
+		log.Println(fmt.Sprintf("last match - %s, current match - %s: %s", player.lastMatch, currentMatch, player.name))
+
+		if player.lastMatch == currentMatch {
+			continue
+		}
+
+		db.Exec("UPDATE players SET last_match = " + currentMatch + " WHERE account_id = " + accountId)
+		player.lastMatch = currentMatch
+
+		if _, ok := matches[currentMatch]; !ok {
+			matches[currentMatch] = true
+		}
 	}
 
-	log.Println(player)
-	log.Println("Player Last Match: " + player.lastMatch)
-	log.Printf("Got current match id: %.0f\n", matches[0].(map[string]interface{})["match_id"].(float64))
+	return matches
+}
 
-	currentMatch := fmt.Sprintf("%.0f", matches[0].(map[string]interface{})["match_id"].(float64))
-	if player.lastMatch == currentMatch {
-		log.Printf("Current match is the same as last: %s - %s\n", currentMatch, player.lastMatch)
-		return GameData{}, nil
-	}
+func getResults(apiKey string, currentMatch string) (GameData, map[string]PlayerData) {
 
 	matchDetailsUrl := "https://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/V001/?match_id=" + currentMatch + "&key=" + apiKey
-	log.Println(matchDetailsUrl)
 
-	data = makeRequest(matchDetailsUrl)
+	data := makeRequest(matchDetailsUrl)
 
 	var playerDetails []interface{}
 	if data != nil && data["result"] != nil {
@@ -157,31 +166,10 @@ func getResults(apiKey string, player *Player) (GameData, map[string]PlayerData)
 			}
 
 			friends[accountId] = stats
-
-			// Make sure we skip all already parsed players
-			skipMap[accountId] = true
 		}
 	}
-
-	updateLastMatch(currentMatch)
 
 	return game, friends
-}
-
-func updateLastMatch(currentMatch string) {
-	for _, player := range playerDb {
-		log.Println(player)
-	}
-
-	for accountId, _ := range skipMap {
-		if _, ok := playerDb[accountId]; ok {
-			db.Exec("UPDATE players SET last_match = " + currentMatch + " WHERE account_id = " + accountId)
-			playerDb[accountId].lastMatch = currentMatch
-			fmt.Println("Updating " + playerMap[accountId].name)
-		}
-	}
-
-	skipMap = make(map[string]bool)
 }
 
 
@@ -202,24 +190,21 @@ func main() {
 	playerMap = parsePlayers()
 
 	playerDb = make(map[string]*Player)
-	skipMap = make(map[string]bool)
 
 	db, _ = sqlite3.Open(getHomeDir() + "/.dota-config/dota.db")
 
 	// Get player info.
 	sql := "SELECT name, account_id, last_match FROM players"
 	for row, err := db.Query(sql); err == nil; err = row.Next() {
-
-		var name, accountId, lastMatch string
-
-		row.Scan(&name, &accountId, &lastMatch)
+		player := new(Player)
+		row.Scan(&player.name, &player.accountId, &player.lastMatch)
 
 		if debug {
-			lastMatch = ""
+			player.lastMatch = ""
 		}
 
-		playerDb[accountId] = &Player{name: name, accountId: accountId, lastMatch: lastMatch}
-		log.Println(playerDb[accountId])
+		playerDb[player.accountId] = player
+		log.Println(playerDb[player.accountId])
 	}
 
 	dg, err = discordgo.New("Bot " + token)
@@ -238,38 +223,40 @@ func main() {
 	codingId := "151877780605239296"
 
 	for {
-		for accountId, _ := range playerDb {
-			game, players := getResults(apiKey, playerDb[accountId])
+		matches := getMostRecentMatches(apiKey)
+
+		for matchId, _ := range matches {
+			game, players := getResults(apiKey, matchId)
 
 			if game != (GameData{}) || players != nil {
-				// Set win loss string.
-				var result string
-				result = "lost"
-				if players[accountId].win == true {
-					result = "won"
-				}
+				winMsg, winPlayersMsg, winSummaryMsg, lossMsg, lossPlayersMsg, lossSummaryMsg := "", "", "", "", "", ""
 
-				var playerListMsg string = ""
-				var teamMemberMsg string = ""
 				for _, player := range players {
-					if player.win == players[accountId].win {
-						playerListMsg += strings.Title(playerMap[player.accountId].name) + ", "
-						teamMemberMsg += fmt.Sprintf(" - %s as %s with K/D/A: %s/%s/%s\n", strings.Title(playerMap[player.accountId].name), player.hero, player.kills, player.deaths, player.assists)
+					if player.win {
+						winMsg += strings.Title(playerMap[player.accountId].name) + ", "
+						winPlayersMsg += fmt.Sprintf(" - %s as %s with K/D/A: %s/%s/%s\n", strings.Title(playerMap[player.accountId].name), player.hero, player.kills, player.deaths, player.assists)
+					} else {
+						lossMsg += strings.Title(playerMap[player.accountId].name) + ", "
+						lossPlayersMsg += fmt.Sprintf(" - %s as %s with K/D/A: %s/%s/%s\n", strings.Title(playerMap[player.accountId].name), player.hero, player.kills, player.deaths, player.assists)
 					}
 				}
 
-				playerListMsg = strings.TrimSuffix(playerListMsg, ", ")
+				if winMsg != "" {
+					winMsg = strings.TrimSuffix(winMsg, ", ")
+					winSummaryMsg = fmt.Sprintf("%s won game:\n", winMsg)
+				}
 
-				summaryMsg := fmt.Sprintf("%s %s last game:", playerListMsg, result)
-				dotabuffMsg := fmt.Sprintf("<https://www.dotabuff.com/matches/%s>", players[accountId].matchId)
-				opendotaMsg := fmt.Sprintf("<https://www.opendota.com/matches/%s>", players[accountId].matchId)
+				if lossMsg != "" {
+					lossMsg = strings.TrimSuffix(lossMsg, ", ")
+					lossSummaryMsg = fmt.Sprintf("%s lost game:\n", lossMsg)
+				}
 
-				sendMessage(codingId, summaryMsg + "\n" + teamMemberMsg + dotabuffMsg + "\n" + opendotaMsg)
+				dotabuffMsg := fmt.Sprintf("<https://www.dotabuff.com/matches/%s>\n", matchId)
+				opendotaMsg := fmt.Sprintf("<https://www.opendota.com/matches/%s>", matchId)
 
+				sendMessage(codingId, winSummaryMsg + winPlayersMsg + lossSummaryMsg + lossPlayersMsg + dotabuffMsg + opendotaMsg)
 			}
 		}
-		// Clear map
-		skipMap = make(map[string]bool)
 
 		time.Sleep(time.Second * 10)
 	}
