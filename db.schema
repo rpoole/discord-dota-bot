@@ -23,3 +23,9 @@ insert into players
 values
 	("50191886", "joseph")
 ;
+
+insert into players
+	(account_id, name)
+values
+	("61444811", "aaron")
+;
