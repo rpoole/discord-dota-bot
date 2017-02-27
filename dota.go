@@ -243,12 +243,12 @@ func main() {
 
 				if winMsg != "" {
 					winMsg = strings.TrimSuffix(winMsg, ", ")
-					winSummaryMsg = fmt.Sprintf("%s won game:\n", winMsg)
+					winSummaryMsg = fmt.Sprintf("%s won last game:\n", winMsg)
 				}
 
 				if lossMsg != "" {
 					lossMsg = strings.TrimSuffix(lossMsg, ", ")
-					lossSummaryMsg = fmt.Sprintf("%s lost game:\n", lossMsg)
+					lossSummaryMsg = fmt.Sprintf("%s lost last game:\n", lossMsg)
 				}
 
 				dotabuffMsg := fmt.Sprintf("<https://www.dotabuff.com/matches/%s>\n", matchId)
