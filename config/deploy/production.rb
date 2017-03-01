@@ -10,7 +10,7 @@ namespace :deploy do
 		on roles :all do
 			execute "cd #{release_path} && GOPATH=~/Projects/golang go build -o dota *.go"
 			execute :sudo, "service dota stop"
-			execute "cd #{release_path} && sqlite3 ~/.dota-config/dota.db < db.schema; true"
+			execute "cd #{release_path} && sqlite3 ~/.dota-config/dota.db < db.schema"
 			execute :sudo, "service dota start"
 		end
 	end
