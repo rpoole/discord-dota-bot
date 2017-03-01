@@ -22,7 +22,6 @@ var debug bool = false
 
 var playerDb map[string]*Player
 var heroMap map[int]Hero
-var playerMap map[string]*Player
 
 var db *sqlite3.Conn
 var dg *discordgo.Session
@@ -135,12 +134,11 @@ func getResults(apiKey string, currentMatch string) (GameData, map[string]Player
 
 	data := makeRequest(matchDetailsUrl)
 
-	var playerDetails []interface{}
-	if data != nil && data["result"] != nil {
-		playerDetails = data["result"].(map[string]interface{})["players"].([]interface{})
-	} else {
+	if data == nil || data["result"] == nil {
 		return GameData{}, nil
 	}
+
+	playerDetails := data["result"].(map[string]interface{})["players"].([]interface{})
 
 	var game GameData
 
@@ -155,7 +153,7 @@ func getResults(apiKey string, currentMatch string) (GameData, map[string]Player
 	for _, v := range playerDetails {
 
 		accountId := fmt.Sprintf("%.0f", v.(map[string]interface{})["account_id"].(float64))
-		if _, ok := playerMap[accountId]; ok {
+		if _, ok := playerDb[accountId]; ok {
 			// Set player data
 			stats := PlayerData{matchId: currentMatch}
 			stats.accountId = accountId
@@ -193,10 +191,10 @@ func main() {
 	token := getDiscordToken()
 	apiKey := getApiKey()
 
-	// Get our hero and players map for easy lookups.
+	// Get list of heroes for easy lookups.
 	heroMap = parseHeroes()
-	playerMap = parsePlayers()
 
+	// Get players.
 	playerDb = make(map[string]*Player)
 
 	db, _ = sqlite3.Open(getHomeDir() + "/.dota-config/dota.db")
@@ -242,16 +240,16 @@ func main() {
 				for _, player := range players {
 					if player.win {
 						if summaryPlayers[player.accountId] {
-							winMsg += strings.Title(playerMap[player.accountId].name) + ", "
+							winMsg += strings.Title(playerDb[player.accountId].name) + ", "
 						}
 
-						winPlayersMsg += fmt.Sprintf(" - %s as %s with K/D/A: %s/%s/%s\n", strings.Title(playerMap[player.accountId].name), player.hero, player.kills, player.deaths, player.assists)
+						winPlayersMsg += fmt.Sprintf(" - %s as %s with K/D/A: %s/%s/%s\n", strings.Title(playerDb[player.accountId].name), player.hero, player.kills, player.deaths, player.assists)
 					} else {
 						if summaryPlayers[player.accountId] {
-							lossMsg += strings.Title(playerMap[player.accountId].name) + ", "
+							lossMsg += strings.Title(playerDb[player.accountId].name) + ", "
 						}
 
-						lossPlayersMsg += fmt.Sprintf(" - %s as %s with K/D/A: %s/%s/%s\n", strings.Title(playerMap[player.accountId].name), player.hero, player.kills, player.deaths, player.assists)
+						lossPlayersMsg += fmt.Sprintf(" - %s as %s with K/D/A: %s/%s/%s\n", strings.Title(playerDb[player.accountId].name), player.hero, player.kills, player.deaths, player.assists)
 					}
 				}
 
