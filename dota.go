@@ -87,20 +87,26 @@ func isPlayingDota2(apiKey string, player *Player) bool {
 	return false;
 }
 
-func getMostRecentMatches(apiKey string) map[string]bool {
-	matches := make(map[string]bool)
+func getMostRecentMatches(apiKey string) map[string]map[string]bool {
+	matches := make(map[string]map[string]bool)
 
 	for accountId, player := range playerDb {
 		matchHistoryUrl := "https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/V001/?account_id=" + player.accountId + "&key=" + apiKey
 
 		data := makeRequest(matchHistoryUrl)
 
-		var matchesJson []interface{}
-		if data != nil && data["result"] != nil {
-			matchesJson = data["result"].(map[string]interface{})["matches"].([]interface{})
-		} else {
+		if data == nil || data["result"] == nil {
 			continue
 		}
+
+		resultsJson := data["result"].(map[string]interface{})
+
+		if resultsJson["status"].(float64) == 15 {
+			log.Println(strings.Title(player.name) + " has no exposed api stats.")
+			continue
+		}
+
+		matchesJson := resultsJson["matches"].([]interface{})
 
 		currentMatch := fmt.Sprintf("%.0f", matchesJson[0].(map[string]interface{})["match_id"].(float64))
 
@@ -114,8 +120,10 @@ func getMostRecentMatches(apiKey string) map[string]bool {
 		player.lastMatch = currentMatch
 
 		if _, ok := matches[currentMatch]; !ok {
-			matches[currentMatch] = true
+			matches[currentMatch] = make(map[string]bool)
 		}
+
+		matches[currentMatch][player.accountId] = true
 	}
 
 	return matches
@@ -225,7 +233,7 @@ func main() {
 	for {
 		matches := getMostRecentMatches(apiKey)
 
-		for matchId, _ := range matches {
+		for matchId, duplicatePlayers := range matches {
 			game, players := getResults(apiKey, matchId)
 
 			if game != (GameData{}) || players != nil {
@@ -233,10 +241,16 @@ func main() {
 
 				for _, player := range players {
 					if player.win {
-						winMsg += strings.Title(playerMap[player.accountId].name) + ", "
+						if duplicatePlayers[player.accountId] {
+							winMsg += strings.Title(playerMap[player.accountId].name) + ", "
+						}
+
 						winPlayersMsg += fmt.Sprintf(" - %s as %s with K/D/A: %s/%s/%s\n", strings.Title(playerMap[player.accountId].name), player.hero, player.kills, player.deaths, player.assists)
 					} else {
-						lossMsg += strings.Title(playerMap[player.accountId].name) + ", "
+						if duplicatePlayers[player.accountId] {
+							lossMsg += strings.Title(playerMap[player.accountId].name) + ", "
+						}
+
 						lossPlayersMsg += fmt.Sprintf(" - %s as %s with K/D/A: %s/%s/%s\n", strings.Title(playerMap[player.accountId].name), player.hero, player.kills, player.deaths, player.assists)
 					}
 				}
@@ -258,7 +272,7 @@ func main() {
 			}
 		}
 
-		time.Sleep(time.Second * 10)
+		time.Sleep(time.Second * 15)
 	}
 
 	// Simple way to keep program running until CTRL-C is pressed.
