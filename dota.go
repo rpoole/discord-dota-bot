@@ -233,7 +233,7 @@ func main() {
 	for {
 		matches := getMostRecentMatches(apiKey)
 
-		for matchId, duplicatePlayers := range matches {
+		for matchId, summaryPlayers := range matches {
 			game, players := getResults(apiKey, matchId)
 
 			if game != (GameData{}) || players != nil {
@@ -241,13 +241,13 @@ func main() {
 
 				for _, player := range players {
 					if player.win {
-						if duplicatePlayers[player.accountId] {
+						if summaryPlayers[player.accountId] {
 							winMsg += strings.Title(playerMap[player.accountId].name) + ", "
 						}
 
 						winPlayersMsg += fmt.Sprintf(" - %s as %s with K/D/A: %s/%s/%s\n", strings.Title(playerMap[player.accountId].name), player.hero, player.kills, player.deaths, player.assists)
 					} else {
-						if duplicatePlayers[player.accountId] {
+						if summaryPlayers[player.accountId] {
 							lossMsg += strings.Title(playerMap[player.accountId].name) + ", "
 						}
 
