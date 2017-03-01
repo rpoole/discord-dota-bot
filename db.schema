@@ -1,4 +1,4 @@
-create table players
+CREATE TABLE IF NOT EXISTS players
 	(
 		account_id varchar(20) primary key,
 		name varchar(50),
@@ -6,26 +6,21 @@ create table players
 	)
 ;
 
-insert into players
+INSERT OR IGNORE INTO players
 	(account_id, name)
-values
-	("83633790", "zack")
-;
-
-insert into players
-	(account_id, name)
-values
-	("66676604", "rob")
-;
-
-insert into players
-	(account_id, name)
-values
-	("50191886", "joseph")
-;
-
-insert into players
-	(account_id, name)
-values
-	("61444811", "aaron")
+VALUES
+	("83633790", "zack"),
+	("66676604", "rob"),
+	("50191886", "joseph"),
+	("61444811", "aaron"),
+	("226659574", "john"),
+	("17044490", "steve"),
+	("4099663", "matt"),
+	("17079506", "ralph"),
+	("98738485", "matt stack"),
+	("4372275", "alex"),
+	("198340190", "jake"),
+	("63816046", "tom"),
+	("71493226", "scott"),
+	("149849638", "scott stack")
 ;
