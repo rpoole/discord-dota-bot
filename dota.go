@@ -187,6 +187,14 @@ func main() {
 		debug = true;
 	}
 
+	f, err := os.OpenFile(getHomeDir() + "/dota.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	log.SetOutput(f)
+
 	// Get config info.
 	token := getDiscordToken()
 	apiKey := getApiKey()
