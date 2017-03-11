@@ -87,9 +87,9 @@ func isPlayingDota2(apiKey string, player *Player) bool {
 }
 
 func getMostRecentMatches(apiKey string) map[string]map[string]bool {
-	matches := make(map[string]map[string]bool)
+	latestMatches := make(map[string]string)
 
-	for accountId, player := range playerDb {
+	for _, player := range playerDb {
 		matchHistoryUrl := "https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/V001/?account_id=" + player.accountId + "&key=" + apiKey
 
 		data := makeRequest(matchHistoryUrl)
@@ -108,6 +108,7 @@ func getMostRecentMatches(apiKey string) map[string]map[string]bool {
 		matchesJson := resultsJson["matches"].([]interface{})
 
 		currentMatch := fmt.Sprintf("%.0f", matchesJson[0].(map[string]interface{})["match_id"].(float64))
+		playersJson := matchesJson[0].(map[string]interface{})["players"].([]interface{})
 
 		log.Println(fmt.Sprintf("last match - %s, current match - %s: %s", player.lastMatch, currentMatch, player.name))
 
@@ -115,14 +116,30 @@ func getMostRecentMatches(apiKey string) map[string]map[string]bool {
 			continue
 		}
 
-		db.Exec("UPDATE players SET last_match = " + currentMatch + " WHERE account_id = " + accountId)
-		player.lastMatch = currentMatch
+		for _, v := range playersJson {
+			playerAccountId := fmt.Sprintf("%.0f", v.(map[string]interface{})["account_id"].(float64))
 
-		if _, ok := matches[currentMatch]; !ok {
-			matches[currentMatch] = make(map[string]bool)
+			if _, ok := playerDb[playerAccountId]; ok {
+				if _, ok := latestMatches[playerAccountId]; !ok {
+					latestMatches[playerAccountId] = currentMatch
+				} else if currentMatch > latestMatches[playerAccountId] {
+					latestMatches[playerAccountId] = currentMatch
+				}
+			}
+		}
+	}
+
+	matches := make(map[string]map[string]bool)
+
+	for accountId, match := range latestMatches {
+		db.Exec("UPDATE players SET last_match = " + match + " WHERE account_id = " + accountId)
+		playerDb[accountId].lastMatch = match
+
+		if _, ok := matches[match]; !ok {
+			matches[match] = make(map[string]bool)
 		}
 
-		matches[currentMatch][player.accountId] = true
+		matches[match][accountId] = true
 	}
 
 	return matches
@@ -185,15 +202,15 @@ func main() {
 	argsWithoutProg := os.Args[1:]
 	if len(argsWithoutProg) > 0 && argsWithoutProg[0] == "debug" {
 		debug = true;
-	}
+	} else {
+		f, err := os.OpenFile(getHomeDir() + "/dota.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
 
-	f, err := os.OpenFile(getHomeDir() + "/dota.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
-	if err != nil {
-		panic(err)
+		log.SetOutput(f)
 	}
-	defer f.Close()
-
-	log.SetOutput(f)
 
 	// Get config info.
 	token := getDiscordToken()
