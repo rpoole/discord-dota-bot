@@ -250,8 +250,7 @@ func main() {
 		log.Println("Error opening Discord session: ", err)
 	}
 
-	// generalId := "111616828899381248"
-	codingId := "151877780605239296"
+	channelId := "290732375539712002"
 
 	for {
 		matches := getMostRecentMatches(apiKey)
@@ -291,7 +290,7 @@ func main() {
 				dotabuffMsg := fmt.Sprintf("<https://www.dotabuff.com/matches/%s>\n", matchId)
 				opendotaMsg := fmt.Sprintf("<https://www.opendota.com/matches/%s>", matchId)
 
-				sendMessage(codingId, winSummaryMsg + winPlayersMsg + lossSummaryMsg + lossPlayersMsg + dotabuffMsg + opendotaMsg)
+				sendMessage(channelId, winSummaryMsg + winPlayersMsg + lossSummaryMsg + lossPlayersMsg + dotabuffMsg + opendotaMsg)
 			}
 		}
 
