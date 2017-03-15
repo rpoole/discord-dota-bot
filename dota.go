@@ -250,7 +250,7 @@ func main() {
 		log.Println("Error opening Discord session: ", err)
 	}
 
-	channelId := "291354679361667072"
+	channelId := "290732375539712002"
 
 	for {
 		matches := getMostRecentMatches(apiKey)
