@@ -250,7 +250,7 @@ func main() {
 		log.Println("Error opening Discord session: ", err)
 	}
 
-	channelId := "290732375539712002"
+	channelId := "291354679361667072"
 
 	for {
 		matches := getMostRecentMatches(apiKey)
@@ -261,19 +261,34 @@ func main() {
 			if game != (GameData{}) || players != nil {
 				winMsg, winPlayersMsg, winSummaryMsg, lossMsg, lossPlayersMsg, lossSummaryMsg := "", "", "", "", "", ""
 
+				max := 0
 				for _, player := range players {
+					if len(playerDb[player.accountId].name) + len(player.hero) > max {
+						max = len(playerDb[player.accountId].name) + len(player.hero)
+					}
+				}
+				fmt.Println(max)
+
+				for _, player := range players {
+					padLength := max - (len(playerDb[player.accountId].name) + len(player.hero))
+					fmt.Println(padLength)
+					pad := ""
+					for i := 0; i < padLength; i++ {
+						pad += " "
+					}
+
 					if player.win {
 						if summaryPlayers[player.accountId] {
 							winMsg += strings.Title(playerDb[player.accountId].name) + ", "
 						}
 
-						winPlayersMsg += fmt.Sprintf(" - %s as %s with K/D/A: %s/%s/%s\n", strings.Title(playerDb[player.accountId].name), player.hero, player.kills, player.deaths, player.assists)
+						winPlayersMsg += fmt.Sprintf("<%s = '%s'>   %s[%s](%s)<%s>\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
 					} else {
 						if summaryPlayers[player.accountId] {
 							lossMsg += strings.Title(playerDb[player.accountId].name) + ", "
 						}
 
-						lossPlayersMsg += fmt.Sprintf(" - %s as %s with K/D/A: %s/%s/%s\n", strings.Title(playerDb[player.accountId].name), player.hero, player.kills, player.deaths, player.assists)
+						lossPlayersMsg += fmt.Sprintf("<%s = '%s'>   %s[%s](%s)<%s>\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
 					}
 				}
 
@@ -290,7 +305,7 @@ func main() {
 				dotabuffMsg := fmt.Sprintf("<https://www.dotabuff.com/matches/%s>\n", matchId)
 				opendotaMsg := fmt.Sprintf("<https://www.opendota.com/matches/%s>", matchId)
 
-				sendMessage(channelId, winSummaryMsg + winPlayersMsg + lossSummaryMsg + lossPlayersMsg + dotabuffMsg + opendotaMsg)
+				sendMessage(channelId, "```md\n" + winSummaryMsg + winPlayersMsg + lossSummaryMsg + lossPlayersMsg + "```" + dotabuffMsg + opendotaMsg)
 			}
 		}
 
