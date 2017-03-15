@@ -267,11 +267,9 @@ func main() {
 						max = len(playerDb[player.accountId].name) + len(player.hero)
 					}
 				}
-				fmt.Println(max)
 
 				for _, player := range players {
 					padLength := max - (len(playerDb[player.accountId].name) + len(player.hero))
-					fmt.Println(padLength)
 					pad := ""
 					for i := 0; i < padLength; i++ {
 						pad += " "
