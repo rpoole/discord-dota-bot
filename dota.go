@@ -8,6 +8,7 @@ import (
 	"time"
 	"log"
 	"os"
+	"flag"
 	"strings"
 	"github.com/bwmarrin/discordgo"
 	"github.com/mxk/go-sqlite/sqlite3"
@@ -38,7 +39,7 @@ type PlayerData struct {
 }
 
 func sendMessage(channelId string, msg string) {
-	if debug {
+	if channelId == "0" {
 		log.Println(msg)
 	} else {
 		dg.ChannelMessageSend(channelId, msg)
@@ -198,11 +199,23 @@ func getResults(apiKey string, currentMatch string) (GameData, map[string]Player
 
 func main() {
 
-	// Check for debug flag.
-	argsWithoutProg := os.Args[1:]
-	if len(argsWithoutProg) > 0 && argsWithoutProg[0] == "debug" {
-		debug = true;
-	} else {
+	debugPtr := flag.String("debug", "normal", "Specifiy output.")
+	flag.Parse()
+
+	channelId := "0"
+
+	if *debugPtr == "out" {
+		debug = true
+	}
+
+	if *debugPtr == "beta" {
+		channelId = "291354679361667072"
+		debug = true
+	}
+
+	if *debugPtr == "normal" {
+		channelId = "290732375539712002"
+
 		f, err := os.OpenFile(getHomeDir() + "/dota.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
 		if err != nil {
 			panic(err)
@@ -250,7 +263,7 @@ func main() {
 		log.Println("Error opening Discord session: ", err)
 	}
 
-	channelId := "290732375539712002"
+	defer dg.Close()
 
 	for {
 		matches := getMostRecentMatches(apiKey)
@@ -280,30 +293,30 @@ func main() {
 							winMsg += strings.Title(playerDb[player.accountId].name) + ", "
 						}
 
-						winPlayersMsg += fmt.Sprintf("<%s = '%s'>   %s[%s](%s)<%s>\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
+						winPlayersMsg += fmt.Sprintf(" > %s - %s %s%s-%s-%s\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
 					} else {
 						if summaryPlayers[player.accountId] {
 							lossMsg += strings.Title(playerDb[player.accountId].name) + ", "
 						}
 
-						lossPlayersMsg += fmt.Sprintf("<%s = '%s'>   %s[%s](%s)<%s>\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
+						lossPlayersMsg += fmt.Sprintf(" > %s - %s %s%s-%s-%s\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
 					}
 				}
 
 				if winMsg != "" {
 					winMsg = strings.TrimSuffix(winMsg, ", ")
-					winSummaryMsg = fmt.Sprintf("%s won last game:\n", winMsg)
+					winSummaryMsg = fmt.Sprintf("+ %s won last game:\n", winMsg)
 				}
 
 				if lossMsg != "" {
 					lossMsg = strings.TrimSuffix(lossMsg, ", ")
-					lossSummaryMsg = fmt.Sprintf("%s lost last game:\n", lossMsg)
+					lossSummaryMsg = fmt.Sprintf("- %s lost last game:\n", lossMsg)
 				}
 
 				dotabuffMsg := fmt.Sprintf("<https://www.dotabuff.com/matches/%s>\n", matchId)
 				opendotaMsg := fmt.Sprintf("<https://www.opendota.com/matches/%s>", matchId)
 
-				sendMessage(channelId, "```md\n" + winSummaryMsg + winPlayersMsg + lossSummaryMsg + lossPlayersMsg + "```" + dotabuffMsg + opendotaMsg)
+				sendMessage(channelId, "```diff\n" + winSummaryMsg + winPlayersMsg + lossSummaryMsg + lossPlayersMsg + "```" + dotabuffMsg + opendotaMsg)
 			}
 		}
 
