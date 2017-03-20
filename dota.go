@@ -120,10 +120,8 @@ func getMostRecentMatches(apiKey string) map[string]map[string]bool {
 		for _, v := range playersJson {
 			playerAccountId := fmt.Sprintf("%.0f", v.(map[string]interface{})["account_id"].(float64))
 
-			if _, ok := playerDb[playerAccountId]; ok {
-				if _, ok := latestMatches[playerAccountId]; !ok {
-					latestMatches[playerAccountId] = currentMatch
-				} else if currentMatch > latestMatches[playerAccountId] {
+			if _, ok := playerDb[playerAccountId]; ok && playerDb[playerAccountId].lastMatch != currentMatch {
+				if currentMatch > latestMatches[playerAccountId] {
 					latestMatches[playerAccountId] = currentMatch
 				}
 			}
