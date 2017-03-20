@@ -146,7 +146,7 @@ func getMostRecentMatches(apiKey string) map[string]map[string]bool {
 
 func getResults(apiKey string, currentMatch string) (GameData, map[string]PlayerData) {
 
-	matchDetailsUrl := "https://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/V001/?match_id=" + 3065865215 + "&key=" + apiKey
+	matchDetailsUrl := "https://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/V001/?match_id=" + currentMatch + "&key=" + apiKey
 
 	data := makeRequest(matchDetailsUrl)
 
