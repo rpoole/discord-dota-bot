@@ -29,7 +29,7 @@ var dg *discordgo.Session
 var err error
 
 type GameData struct {
-	duration, radiantScore, direScore float64
+	duration, radiantScore, direScore int
 	radiantWin bool
 }
 
@@ -146,7 +146,7 @@ func getMostRecentMatches(apiKey string) map[string]map[string]bool {
 
 func getResults(apiKey string, currentMatch string) (GameData, map[string]PlayerData) {
 
-	matchDetailsUrl := "https://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/V001/?match_id=" + currentMatch + "&key=" + apiKey
+	matchDetailsUrl := "https://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/V001/?match_id=" + 3065865215 + "&key=" + apiKey
 
 	data := makeRequest(matchDetailsUrl)
 
@@ -159,9 +159,9 @@ func getResults(apiKey string, currentMatch string) (GameData, map[string]Player
 	var game GameData
 
 	game.radiantWin = data["result"].(map[string]interface{})["radiant_win"].(bool)
-	game.duration = data["result"].(map[string]interface{})["duration"].(float64)
-	game.radiantScore = data["result"].(map[string]interface{})["radiant_score"].(float64)
-	game.direScore = data["result"].(map[string]interface{})["dire_score"].(float64)
+	game.duration = int(data["result"].(map[string]interface{})["duration"].(float64))
+	game.radiantScore = int(data["result"].(map[string]interface{})["radiant_score"].(float64))
+	game.direScore = int(data["result"].(map[string]interface{})["dire_score"].(float64))
 
 	friends := make(map[string]PlayerData);
 
@@ -194,6 +194,38 @@ func getResults(apiKey string, currentMatch string) (GameData, map[string]Player
 	return game, friends
 }
 
+func generateDurationMsg(game GameData) string {
+	hours := game.duration / 3600
+	minutes := (game.duration - hours * 3600) / 60
+	seconds := game.duration - (hours * 3600) - (minutes * 60)
+
+
+	hoursMsg := ""
+	minutesMsg := fmt.Sprintf("%d:", minutes)
+	secondsMsg := fmt.Sprintf("%d", seconds)
+	if hours > 0 {
+		hoursMsg = fmt.Sprintf("%d:", hours)
+
+		if minutes < 10 {
+			minutesMsg = "0" + minutesMsg
+		}
+	}
+
+	if seconds < 10 {
+		secondsMsg = "0" + secondsMsg
+	}
+
+	// winningTeam := ""
+	// if game.radiantWin {
+	// 	winningTeam = "radiant"
+	// } else {
+	// 	winningTeam = "dire"
+	// }
+
+	matchSummary := fmt.Sprintf("Match Duration: %s%s%s\n", hoursMsg, minutesMsg, secondsMsg)
+
+	return matchSummary
+}
 
 func main() {
 
@@ -314,7 +346,9 @@ func main() {
 				dotabuffMsg := fmt.Sprintf("<https://www.dotabuff.com/matches/%s>\n", matchId)
 				opendotaMsg := fmt.Sprintf("<https://www.opendota.com/matches/%s>", matchId)
 
-				sendMessage(channelId, "```diff\n" + winSummaryMsg + winPlayersMsg + lossSummaryMsg + lossPlayersMsg + "```" + dotabuffMsg + opendotaMsg)
+				matchSummaryMsg := generateDurationMsg(game)
+
+				sendMessage(channelId, "```diff\n" + matchSummaryMsg + winSummaryMsg + winPlayersMsg + lossSummaryMsg + lossPlayersMsg + "```" + dotabuffMsg + opendotaMsg)
 			}
 		}
 
