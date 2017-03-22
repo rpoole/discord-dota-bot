@@ -26,3 +26,6 @@ VALUES
 	("149849638", "scott stack"),
 	("64744672", "david")
 ;
+
+ALTER TABLE players ADD COLUMN daily_win tinyint DEFAULT 0;
+ALTER TABLE players ADD COLUMN daily_loss tinyint DEFAULT 0;

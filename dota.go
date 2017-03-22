@@ -17,6 +17,9 @@ import (
 
 const DOTA_ID string = "570"
 
+var lastHour int = 0
+var currentHour int = 0
+
 var lastMatch string = ""
 
 var debug bool = false
@@ -27,6 +30,8 @@ var heroMap map[int]Hero
 var db *sqlite3.Conn
 var dg *discordgo.Session
 var err error
+
+type BicepzBot struct{}
 
 type GameData struct {
 	duration, radiantScore, direScore int
@@ -199,7 +204,6 @@ func generateDurationMsg(game GameData) string {
 	minutes := (game.duration - hours * 3600) / 60
 	seconds := game.duration - (hours * 3600) - (minutes * 60)
 
-
 	hoursMsg := ""
 	minutesMsg := fmt.Sprintf("%d:", minutes)
 	secondsMsg := fmt.Sprintf("%d", seconds)
@@ -215,16 +219,71 @@ func generateDurationMsg(game GameData) string {
 		secondsMsg = "0" + secondsMsg
 	}
 
-	// winningTeam := ""
-	// if game.radiantWin {
-	// 	winningTeam = "radiant"
-	// } else {
-	// 	winningTeam = "dire"
-	// }
-
 	matchSummary := fmt.Sprintf("Match Duration: %s%s%s\n", hoursMsg, minutesMsg, secondsMsg)
 
 	return matchSummary
+}
+
+func getPadMax() int {
+	max := 0
+	for _, player := range playerDb {
+		if len(player.name)> max {
+			max = len(player.name)
+		}
+	}
+
+	return max
+}
+
+func getPadLengthString(name string) string {
+	padLength := getPadMax() - len(name)
+	pad := ""
+	for i := 0; i < padLength; i++ {
+		pad += " "
+	}
+
+	return pad
+}
+
+func getDailyStandings() string {
+	standings := "```diff\nDaily Standings Report:\n"
+
+	sql := "SELECT name, daily_win, daily_loss FROM players"
+	for row, err := db.Query(sql); err == nil; err = row.Next() {
+		var name string
+		var win, loss int
+		row.Scan(&name, &win, &loss)
+
+		sign := "-"
+		if win + loss > 0 {
+			if win >= loss {
+				sign = "+"
+			}
+
+			standings += fmt.Sprintf("%s %s %s %d - %d\n", sign, name, getPadLengthString(name), win, loss)
+		}
+	}
+
+	standings += "```"
+
+	return standings
+}
+
+func resetDailyStandings() {
+	db.Exec("UPDATE players SET daily_win = 0")
+	db.Exec("UPDATE players SET daily_loss = 0")
+}
+
+// Reads messages and sends responses
+func (bb *BicepzBot) MessageParser(s *discordgo.Session, m *discordgo.MessageCreate) {
+
+	words := string(m.Content)
+
+	fmt.Println(words)
+
+	if words == "!standings" {
+		s.ChannelMessageSend( m.ChannelID, getDailyStandings() )
+	}
 }
 
 func main() {
@@ -295,7 +354,21 @@ func main() {
 
 	defer dg.Close()
 
+	bb := BicepzBot{}
+
+	dg.AddHandler(bb.MessageParser)
+
+	lastHour = time.Now().Hour()
+
 	for {
+		currentHour = time.Now().Hour()
+		log.Println(lastHour)
+		log.Println(currentHour)
+		if currentHour == 6 && lastHour == 5 {
+			resetDailyStandings()
+		}
+		lastHour = currentHour
+
 		matches := getMostRecentMatches(apiKey)
 
 		for matchId, summaryPlayers := range matches {
@@ -321,12 +394,14 @@ func main() {
 					if player.win {
 						if summaryPlayers[player.accountId] {
 							winMsg += strings.Title(playerDb[player.accountId].name) + ", "
+							db.Exec("UPDATE players SET daily_win = daily_win + 1 WHERE account_id = " + player.accountId)
 						}
 
 						winPlayersMsg += fmt.Sprintf(" > %s - %s %s%s-%s-%s\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
 					} else {
 						if summaryPlayers[player.accountId] {
 							lossMsg += strings.Title(playerDb[player.accountId].name) + ", "
+							db.Exec("UPDATE players SET daily_loss = daily_loss + 1 WHERE account_id = " + player.accountId)
 						}
 
 						lossPlayersMsg += fmt.Sprintf(" > %s - %s %s%s-%s-%s\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
