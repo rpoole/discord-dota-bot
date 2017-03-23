@@ -248,7 +248,7 @@ func getPadLengthString(name string) string {
 func getDailyStandings() string {
 	standings := "```diff\nDaily Standings Report:\n"
 
-	sql := "SELECT name, daily_win, daily_loss FROM players ORDER BY daily_win DESC, daily_loss DESC, name ASC;"
+	sql := "SELECT name, daily_win, daily_loss FROM players ORDER BY daily_win DESC, daily_loss ASC, name ASC;"
 	for row, err := db.Query(sql); err == nil; err = row.Next() {
 		var name string
 		var win, loss int
