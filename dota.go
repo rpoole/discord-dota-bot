@@ -248,22 +248,20 @@ func getPadLengthString(name string) string {
 func getDailyStandings() string {
 	standings := "```diff\nDaily Standings Report:\n"
 
-	sql := "SELECT name, daily_win, daily_loss FROM players ORDER BY daily_win DESC, daily_loss ASC, name ASC;"
+	sql := "SELECT name, daily_win, daily_loss, (daily_win - daily_loss) as net_win FROM players WHERE daily_win != 0 OR daily_loss != 0 ORDER BY net_win DESC, name ASC;"
 	for row, err := db.Query(sql); err == nil; err = row.Next() {
 		var name string
 		var win, loss int
 		row.Scan(&name, &win, &loss)
 
 		sign := " "
-		if win + loss > 0 {
-			if win > loss {
-				sign = "+"
-			} else if win < loss {
-				sign = "-"
-			}
-
-			standings += fmt.Sprintf("%s %s %s %d - %d\n", sign, name, getPadLengthString(name), win, loss)
+		if win > loss {
+			sign = "+"
+		} else if win < loss {
+			sign = "-"
 		}
+
+		standings += fmt.Sprintf("%s %s %s %d - %d\n", sign, name, getPadLengthString(name), win, loss)
 	}
 
 	standings += "```"
