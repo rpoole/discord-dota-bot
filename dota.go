@@ -366,7 +366,7 @@ func main() {
 		currentHour = time.Now().Hour()
 		log.Println(lastHour)
 		log.Println(currentHour)
-		if currentHour == 6 && lastHour == 5 {
+		if currentHour == 10 && lastHour == 9 {
 			resetDailyStandings()
 		}
 		lastHour = currentHour
