@@ -261,7 +261,7 @@ func getDailyStandings() string {
 			sign = "-"
 		}
 
-		standings += fmt.Sprintf("%s %s %s %d - %d\n", sign, name, getPadLengthString(name), win, loss)
+		standings += fmt.Sprintf("%s %s %s %d - %d\n", sign, strings.Title(name), getPadLengthString(name), win, loss)
 	}
 
 	standings += "```"
