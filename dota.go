@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"time"
 	"log"
+	"math"
 	"os"
 	"flag"
 	"strings"
@@ -252,7 +253,8 @@ func getDailyStandings() string {
 	for row, err := db.Query(sql); err == nil; err = row.Next() {
 		var name string
 		var win, loss int
-		row.Scan(&name, &win, &loss)
+		var net_win float64
+		row.Scan(&name, &win, &loss, &net_win)
 
 		sign := " "
 		if win > loss {
@@ -261,7 +263,7 @@ func getDailyStandings() string {
 			sign = "-"
 		}
 
-		standings += fmt.Sprintf("%s %s %s %d - %d\n", sign, strings.Title(name), getPadLengthString(name), win, loss)
+		standings += fmt.Sprintf("%s %s %s %d - %d  %s%d\n", sign, strings.Title(name), getPadLengthString(name), win, loss, sign, int(math.Abs(net_win)))
 	}
 
 	standings += "```"
