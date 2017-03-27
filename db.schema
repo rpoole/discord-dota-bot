@@ -29,3 +29,21 @@ VALUES
 
 ALTER TABLE players ADD COLUMN daily_win tinyint DEFAULT 0;
 ALTER TABLE players ADD COLUMN daily_loss tinyint DEFAULT 0;
+
+ALTER TABLE players ADD COLUMN weekly_win tinyint DEFAULT 0;
+ALTER TABLE players ADD COLUMN weekly_loss tinyint DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS settings
+	(
+		id tinyint primary key,
+		setting varchar(20),
+		value datetime
+	)
+;
+
+INSERT OR IGNORE INTO settings
+	(id, setting, value)
+VALUES
+	(1, "next_day", "2017-03-27 06:00:00-04:00"),
+	(2, "next_week", "2017-03-27 06:00:00-04:00")
+;

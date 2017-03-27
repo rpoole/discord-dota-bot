@@ -246,10 +246,17 @@ func getPadLengthString(name string) string {
 	return pad
 }
 
-func getDailyStandings() string {
-	standings := "```diff\nDaily Standings Report:\n"
+func getStandings(report string) string {
+	var standings, sql string
 
-	sql := "SELECT name, daily_win, daily_loss, (daily_win - daily_loss) as net_win FROM players WHERE daily_win != 0 OR daily_loss != 0 ORDER BY net_win DESC, daily_win DESC, name ASC;"
+	if report == "day" {
+		standings = "```diff\nDaily Standings Report:\n"
+		sql = "SELECT name, daily_win, daily_loss, (daily_win - daily_loss) as net_win FROM players WHERE daily_win != 0 OR daily_loss != 0 ORDER BY net_win DESC, daily_win DESC, name ASC;"
+	} else if report == "week" {
+		standings = "```diff\nWeekly Standings Report:\n"
+		sql = "SELECT name, weekly_win, weekly_loss, (weekly_win - weekly_loss) as net_win FROM players WHERE weekly_win != 0 OR weekly_loss != 0 ORDER BY net_win DESC, weekly_win DESC, name ASC;"
+	}
+
 	for row, err := db.Query(sql); err == nil; err = row.Next() {
 		var name string
 		var win, loss int
@@ -271,27 +278,35 @@ func getDailyStandings() string {
 	return standings
 }
 
+func resetWeeklyStandings() {
+	log.Println("Resetting Weekly Standings")
+
+	db.Exec("UPDATE players SET weekly_win = 0")
+	db.Exec("UPDATE players SET weekly_loss = 0")
+
+	updateNextWeek(db)
+}
+
 func resetDailyStandings() {
 	log.Println("Resetting Daily Standings")
 
 	db.Exec("UPDATE players SET daily_win = 0")
 	db.Exec("UPDATE players SET daily_loss = 0")
+
+	updateNextDay(db)
 }
 
 // Reads messages and sends responses
 func (bb *BicepzBot) MessageParser(s *discordgo.Session, m *discordgo.MessageCreate) {
-
 	words := string(m.Content)
-
-	fmt.Println(words)
-
-	if words == "!standings" {
-		s.ChannelMessageSend( m.ChannelID, getDailyStandings() )
+	if words == "!day" {
+		s.ChannelMessageSend( m.ChannelID, getStandings("day"))
+	} else if words == "!week" {
+		s.ChannelMessageSend( m.ChannelID, getStandings("week"))
 	}
 }
 
 func main() {
-
 	debugPtr := flag.String("debug", "normal", "Specifiy output.")
 	flag.Parse()
 
@@ -362,16 +377,15 @@ func main() {
 
 	dg.AddHandler(bb.MessageParser)
 
-	lastHour = time.Now().Hour()
-
 	for {
-		currentHour = time.Now().Hour()
-		log.Println(lastHour)
-		log.Println(currentHour)
-		if currentHour == 10 && lastHour == 9 {
+		currentTime := time.Now()
+		if getNextDay(db).Before(currentTime) {
 			resetDailyStandings()
 		}
-		lastHour = currentHour
+
+		if getNextWeek(db).Before(currentTime) {
+			resetWeeklyStandings()
+		}
 
 		matches := getMostRecentMatches(apiKey)
 
@@ -399,6 +413,7 @@ func main() {
 						if summaryPlayers[player.accountId] {
 							winMsg += strings.Title(playerDb[player.accountId].name) + ", "
 							db.Exec("UPDATE players SET daily_win = daily_win + 1 WHERE account_id = " + player.accountId)
+							db.Exec("UPDATE players SET weekly_win = weekly_win + 1 WHERE account_id = " + player.accountId)
 						}
 
 						winPlayersMsg += fmt.Sprintf(" > %s - %s %s%s-%s-%s\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
@@ -406,6 +421,7 @@ func main() {
 						if summaryPlayers[player.accountId] {
 							lossMsg += strings.Title(playerDb[player.accountId].name) + ", "
 							db.Exec("UPDATE players SET daily_loss = daily_loss + 1 WHERE account_id = " + player.accountId)
+							db.Exec("UPDATE players SET weekly_loss = weekly_loss + 1 WHERE account_id = " + player.accountId)
 						}
 
 						lossPlayersMsg += fmt.Sprintf(" > %s - %s %s%s-%s-%s\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
