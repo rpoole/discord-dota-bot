@@ -379,6 +379,8 @@ func main() {
 
 	for {
 		currentTime := time.Now()
+		log.Println(currentTime)
+
 		if getNextDay(db).Before(currentTime) {
 			resetDailyStandings()
 		}
