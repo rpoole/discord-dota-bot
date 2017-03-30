@@ -225,19 +225,37 @@ func generateDurationMsg(game GameData) string {
 	return matchSummary
 }
 
-func getPadMax() int {
+func getStringArrayMaxLength(array interface{}) int {
 	max := 0
-	for _, player := range playerDb {
-		if len(player.name)> max {
-			max = len(player.name)
-		}
+
+	switch v := array.(type) {
+		default:
+			fmt.Printf("Unexpected Type %T", v)
+		case map[string]PlayerData:
+			for _, x := range v {
+				if len(playerDb[x.accountId].name + x.hero) > max {
+					max = len(playerDb[x.accountId].name + x.hero)
+				}
+			}
+		case map[string]*Player:
+			for _, x := range v {
+				if len(x.name) > max {
+					max = len(x.name)
+				}
+			}
+		case []string:
+			for _, x := range v {
+				if len(x) > max {
+					max = len(x)
+				}
+			}
 	}
 
 	return max
 }
 
-func getPadLengthString(name string) string {
-	padLength := getPadMax() - len(name)
+func getPadLengthString(max int, name string) string {
+	padLength := max - len(name)
 	pad := ""
 	for i := 0; i < padLength; i++ {
 		pad += " "
@@ -257,6 +275,8 @@ func getStandings(report string) string {
 		sql = "SELECT name, weekly_win, weekly_loss, (weekly_win - weekly_loss) as net_win FROM players WHERE weekly_win != 0 OR weekly_loss != 0 ORDER BY net_win DESC, weekly_win DESC, name ASC;"
 	}
 
+	max := getStringArrayMaxLength(playerDb)
+
 	for row, err := db.Query(sql); err == nil; err = row.Next() {
 		var name string
 		var win, loss int
@@ -270,7 +290,7 @@ func getStandings(report string) string {
 			sign = "-"
 		}
 
-		standings += fmt.Sprintf("%s %s %s %d - %d  %s%d\n", sign, strings.Title(name), getPadLengthString(name), win, loss, sign, int(math.Abs(net_win)))
+		standings += fmt.Sprintf("%s %s %s %d - %d  %s%d\n", sign, strings.Title(name), getPadLengthString(max, name), win, loss, sign, int(math.Abs(net_win)))
 	}
 
 	standings += "```"
@@ -397,19 +417,10 @@ func main() {
 			if game != (GameData{}) || players != nil {
 				winMsg, winPlayersMsg, winSummaryMsg, lossMsg, lossPlayersMsg, lossSummaryMsg := "", "", "", "", "", ""
 
-				max := 0
-				for _, player := range players {
-					if len(playerDb[player.accountId].name) + len(player.hero) > max {
-						max = len(playerDb[player.accountId].name) + len(player.hero)
-					}
-				}
+				max := getStringArrayMaxLength(players)
 
 				for _, player := range players {
-					padLength := max - (len(playerDb[player.accountId].name) + len(player.hero))
-					pad := ""
-					for i := 0; i < padLength; i++ {
-						pad += " "
-					}
+					pad := getPadLengthString(max, playerDb[player.accountId].name + player.hero)
 
 					if player.win {
 						if summaryPlayers[player.accountId] {
