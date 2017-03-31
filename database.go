@@ -32,6 +32,19 @@ func getNextWeek(db *sqlite3.Conn) time.Time {
 	return nextWeek
 }
 
+func getNextMonth(db *sqlite3.Conn) time.Time {
+	sql := "SELECT strftime('%s', value) FROM settings where setting ='next_month';"
+	row, err := db.Query(sql)
+	var nextMonth time.Time
+	err = row.Scan(&nextMonth)
+	if err != nil {
+		log.Println("Failed to db.Query:", err)
+	}
+	log.Println(nextMonth)
+
+	return nextMonth
+}
+
 func updateNextDay(db *sqlite3.Conn) {
 	sql := "UPDATE settings SET value = datetime(value, '+24 hours') WHERE setting ='next_day';"
 	db.Exec(sql)
@@ -39,5 +52,10 @@ func updateNextDay(db *sqlite3.Conn) {
 
 func updateNextWeek(db *sqlite3.Conn) {
 	sql := "UPDATE settings SET value = datetime(value, '+7 days') WHERE setting ='next_week';"
+	db.Exec(sql)
+}
+
+func updateNextMonth(db *sqlite3.Conn) {
+	sql := "UPDATE settings SET value = datetime(value, '+1 month') WHERE setting ='next_month';"
 	db.Exec(sql)
 }

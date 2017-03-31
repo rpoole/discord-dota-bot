@@ -34,6 +34,9 @@ ALTER TABLE players ADD COLUMN daily_loss tinyint DEFAULT 0;
 ALTER TABLE players ADD COLUMN weekly_win tinyint DEFAULT 0;
 ALTER TABLE players ADD COLUMN weekly_loss tinyint DEFAULT 0;
 
+ALTER TABLE players ADD COLUMN monthly_win tinyint DEFAULT 0;
+ALTER TABLE players ADD COLUMN monthly_loss tinyint DEFAULT 0;
+
 CREATE TABLE IF NOT EXISTS settings
 	(
 		id tinyint primary key,
@@ -46,5 +49,6 @@ INSERT OR IGNORE INTO settings
 	(id, setting, value)
 VALUES
 	(1, "next_day", "2017-03-27 06:00:00-04:00"),
-	(2, "next_week", "2017-03-27 06:00:00-04:00")
+	(2, "next_week", "2017-03-27 06:00:00-04:00"),
+	(3, "next_month", "2017-04-01 06:00:00-04:00")
 ;

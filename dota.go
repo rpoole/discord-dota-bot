@@ -273,6 +273,9 @@ func getStandings(report string) string {
 	} else if report == "week" {
 		standings = "```diff\nWeekly Standings Report:\n"
 		sql = "SELECT name, weekly_win, weekly_loss, (weekly_win - weekly_loss) as net_win FROM players WHERE weekly_win != 0 OR weekly_loss != 0 ORDER BY net_win DESC, weekly_win DESC, name ASC;"
+	} else if report == "month" {
+		standings = "```diff\nMonthly Standings Report:\n"
+		sql = "SELECT name, monthly_win, monthly_loss, (monthly_win - monthly_loss) as net_win FROM players WHERE monthly_win != 0 OR monthly_loss != 0 ORDER BY net_win DESC, monthly_win DESC, name ASC;"
 	}
 
 	max := getStringArrayMaxLength(playerDb)
@@ -316,6 +319,15 @@ func resetDailyStandings() {
 	updateNextDay(db)
 }
 
+func resetMonthlyStandings() {
+	log.Println("Resetting Monthly Standings")
+
+	db.Exec("UPDATE players SET monthly_win = 0")
+	db.Exec("UPDATE players SET monthly_loss = 0")
+
+	updateNextMonth(db)
+}
+
 // Reads messages and sends responses
 func (bb *BicepzBot) MessageParser(s *discordgo.Session, m *discordgo.MessageCreate) {
 	words := string(m.Content)
@@ -323,6 +335,8 @@ func (bb *BicepzBot) MessageParser(s *discordgo.Session, m *discordgo.MessageCre
 		s.ChannelMessageSend( m.ChannelID, getStandings("day"))
 	} else if words == "!week" {
 		s.ChannelMessageSend( m.ChannelID, getStandings("week"))
+	} else if words == "!month" {
+		s.ChannelMessageSend( m.ChannelID, getStandings("month"))
 	}
 }
 
@@ -409,6 +423,10 @@ func main() {
 			resetWeeklyStandings()
 		}
 
+		if getNextMonth(db).Before(currentTime) {
+			resetMonthlyStandings()
+		}
+
 		matches := getMostRecentMatches(apiKey)
 
 		for matchId, summaryPlayers := range matches {
@@ -425,16 +443,14 @@ func main() {
 					if player.win {
 						if summaryPlayers[player.accountId] {
 							winMsg += strings.Title(playerDb[player.accountId].name) + ", "
-							db.Exec("UPDATE players SET daily_win = daily_win + 1 WHERE account_id = " + player.accountId)
-							db.Exec("UPDATE players SET weekly_win = weekly_win + 1 WHERE account_id = " + player.accountId)
+							db.Exec("UPDATE players SET daily_win = daily_win + 1, weekly_win = weekly_win + 1, monthly_win = monthly_win + 1 WHERE account_id = " + player.accountId)
 						}
 
 						winPlayersMsg += fmt.Sprintf(" > %s - %s %s%s-%s-%s\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
 					} else {
 						if summaryPlayers[player.accountId] {
 							lossMsg += strings.Title(playerDb[player.accountId].name) + ", "
-							db.Exec("UPDATE players SET daily_loss = daily_loss + 1 WHERE account_id = " + player.accountId)
-							db.Exec("UPDATE players SET weekly_loss = weekly_loss + 1 WHERE account_id = " + player.accountId)
+							db.Exec("UPDATE players SET daily_loss = daily_loss + 1, weekly_loss = weekly_loss + 1, monthly_loss = monthly_loss + 1 WHERE account_id = " + player.accountId)
 						}
 
 						lossPlayersMsg += fmt.Sprintf(" > %s - %s %s%s-%s-%s\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
