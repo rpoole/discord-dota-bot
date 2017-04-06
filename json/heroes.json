@@ -201,9 +201,9 @@
       "localized_name": "Faceless Void"
     },
     {
-      "name": "skeleton_king",
+      "name": "wraith_king",
       "id": 42,
-      "localized_name": "Skeleton King"
+      "localized_name": "Wraith King"
     },
     {
       "name": "death_prophet",
@@ -559,6 +559,11 @@
       "name": "npc_dota_hero_arc_warden",
       "id": 113,
       "localized_name": "Arc Warden"
+    },
+    {
+      "name": "npc_dota_hero_monkey_king",
+      "id": 114,
+      "localized_name": "Monkey King"
     }
   ]
 }
