@@ -451,6 +451,9 @@ func main() {
 
 				max := getStringArrayMaxLength(players)
 
+				winners := 0
+				losers := 0
+
 				for _, player := range players {
 					pad := getPadLengthString(max, playerDb[player.accountId].name + player.hero)
 
@@ -459,6 +462,7 @@ func main() {
 							winMsg += strings.Title(playerDb[player.accountId].name) + ", "
 							db.Exec("UPDATE players SET daily_win = daily_win + 1, weekly_win = weekly_win + 1, monthly_win = monthly_win + 1 WHERE account_id = " + player.accountId)
 						}
+						winners += 1
 
 						winPlayersMsg += fmt.Sprintf(" > %s - %s %s%s-%s-%s\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
 					} else {
@@ -466,9 +470,20 @@ func main() {
 							lossMsg += strings.Title(playerDb[player.accountId].name) + ", "
 							db.Exec("UPDATE players SET daily_loss = daily_loss + 1, weekly_loss = weekly_loss + 1, monthly_loss = monthly_loss + 1 WHERE account_id = " + player.accountId)
 						}
+						losers += 1
 
 						lossPlayersMsg += fmt.Sprintf(" > %s - %s %s%s-%s-%s\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
 					}
+				}
+
+				var strawPollId int = -1
+				strawPollBannerMsg := ""
+				if winners == 5 {
+					strawPollId = makeStrawPoll(players, playerDb, true)
+					strawPollBannerMsg = "\n```diff\n+ !!! VOTE FOR THE MVP !!!```"
+				} else if losers == 5 {
+					strawPollId = makeStrawPoll(players, playerDb, false)
+					strawPollBannerMsg = "\n```diff\n- ??? WHO THREW THAT GAME ???```"
 				}
 
 				if winMsg != "" {
@@ -484,9 +499,14 @@ func main() {
 				dotabuffMsg := fmt.Sprintf("<https://www.dotabuff.com/matches/%s>\n", matchId)
 				opendotaMsg := fmt.Sprintf("<https://www.opendota.com/matches/%s>", matchId)
 
+				strawPollMsg := ""
+				if strawPollId > 0 {
+					strawPollMsg = fmt.Sprintf("http://www.strawpoll.me/%d", strawPollId)
+				}
+
 				matchSummaryMsg := generateDurationMsg(game)
 
-				sendMessage(channelId, "```diff\n" + matchSummaryMsg + winSummaryMsg + winPlayersMsg + lossSummaryMsg + lossPlayersMsg + "```" + dotabuffMsg + opendotaMsg)
+				sendMessage(channelId, "```diff\n" + matchSummaryMsg + winSummaryMsg + winPlayersMsg + lossSummaryMsg + lossPlayersMsg + "```" + dotabuffMsg + opendotaMsg + strawPollBannerMsg + strawPollMsg)
 			}
 		}
 
