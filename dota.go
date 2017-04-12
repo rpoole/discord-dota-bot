@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"flag"
+	"regexp"
 	"strings"
 	"github.com/bwmarrin/discordgo"
 	"github.com/mxk/go-sqlite/sqlite3"
@@ -31,6 +32,8 @@ var heroMap map[int]Hero
 var db *sqlite3.Conn
 var dg *discordgo.Session
 var err error
+
+var nameRegex = regexp.MustCompile(`^!nickname\s`)
 
 type BicepzBot struct{}
 
@@ -337,11 +340,22 @@ func (bb *BicepzBot) MessageParser(s *discordgo.Session, m *discordgo.MessageCre
 		s.ChannelMessageSend( m.ChannelID, getStandings("week"))
 	} else if words == "!month" {
 		s.ChannelMessageSend( m.ChannelID, getStandings("month"))
+	} else if nameRegex.MatchString(words) {
+		// !nickname
+		var nickName string
+		if len(words) > 25 {
+			nickName = words[10:25]
+		} else {
+			nickName = words[10:len(words)]
+		}
+		fmt.Println(nickName)
+		fmt.Println(m.Author)
 	}
 }
 
 func main() {
 	debugPtr := flag.String("debug", "normal", "Specifiy output.")
+	lastPtr := flag.String("last", "no", "Get last match")
 	flag.Parse()
 
 	channelId := "0"
@@ -385,7 +399,7 @@ func main() {
 		player := new(Player)
 		row.Scan(&player.name, &player.accountId, &player.lastMatch)
 
-		if debug {
+		if debug && *lastPtr == "yes" {
 			player.lastMatch = ""
 		}
 
