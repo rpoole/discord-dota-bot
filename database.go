@@ -6,6 +6,19 @@ import (
 	"github.com/mxk/go-sqlite/sqlite3"
 )
 
+func getPlayerStreak(db *sqlite3.Conn, player PlayerData) int {
+	sql := "SELECT streak FROM players where account_id = " + player.accountId
+	row, err := db.Query(sql)
+	var streak int
+	err = row.Scan(&streak)
+	if err != nil {
+		log.Println("Failed to db.Query:", err)
+	}
+	log.Println(streak)
+
+	return streak
+}
+
 func getNextDay(db *sqlite3.Conn) time.Time {
 	sql := "SELECT strftime('%s', value) FROM settings where setting ='next_day';"
 	row, err := db.Query(sql)

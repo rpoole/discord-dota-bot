@@ -304,6 +304,32 @@ func getStandings(report string) string {
 	return standings
 }
 
+func getStreaks() string {
+	streaks := "```diff\nCurrent Streaks:\n"
+	sql := "SELECT name, streak FROM players WHERE streak > 1 OR streak < -1 ORDER BY streak DESC, name ASC"
+
+	max := getStringArrayMaxLength(playerDb)
+
+	for row, err := db.Query(sql); err == nil; err = row.Next() {
+		var name string
+		var streak float64
+		row.Scan(&name, &streak)
+
+		sign := " "
+		if streak > 0 {
+			sign = "+"
+		} else {
+			sign = "-"
+		}
+
+		streaks += fmt.Sprintf("%s %s %s %s%d\n", sign, strings.Title(name), getPadLengthString(max, name), sign, int(math.Abs(streak)))
+	}
+
+	streaks += "```"
+
+	return streaks
+}
+
 func resetWeeklyStandings() {
 	log.Println("Resetting Weekly Standings")
 
@@ -331,15 +357,29 @@ func resetMonthlyStandings() {
 	updateNextMonth(db)
 }
 
+func updateStreaks(player PlayerData) {
+	streak := getPlayerStreak(db, player)
+
+	if player.win && streak >= 0 {
+		db.Exec("UPDATE players SET streak = streak + 1 WHERE account_id = " + player.accountId)
+	} else if !player.win && streak <= 0 {
+		db.Exec("UPDATE players SET streak = streak - 1 WHERE account_id = " + player.accountId)
+	} else {
+		db.Exec("UPDATE players SET streak = 0 WHERE account_id = " + player.accountId)
+	}
+}
+
 // Reads messages and sends responses
 func (bb *BicepzBot) MessageParser(s *discordgo.Session, m *discordgo.MessageCreate) {
 	words := string(m.Content)
 	if words == "!day" {
-		s.ChannelMessageSend( m.ChannelID, getStandings("day"))
+		s.ChannelMessageSend(m.ChannelID, getStandings("day"))
 	} else if words == "!week" {
-		s.ChannelMessageSend( m.ChannelID, getStandings("week"))
+		s.ChannelMessageSend(m.ChannelID, getStandings("week"))
 	} else if words == "!month" {
-		s.ChannelMessageSend( m.ChannelID, getStandings("month"))
+		s.ChannelMessageSend(m.ChannelID, getStandings("month"))
+	} else if words == "!streaks" {
+		s.ChannelMessageSend(m.ChannelID, getStreaks())
 	} else if nameRegex.MatchString(words) {
 		// !nickname
 		var nickName string
@@ -461,6 +501,7 @@ func main() {
 						if summaryPlayers[player.accountId] {
 							winMsg += strings.Title(playerDb[player.accountId].name) + ", "
 							db.Exec("UPDATE players SET daily_win = daily_win + 1, weekly_win = weekly_win + 1, monthly_win = monthly_win + 1 WHERE account_id = " + player.accountId)
+							updateStreaks(player)
 						}
 						winners += 1
 
@@ -469,6 +510,7 @@ func main() {
 						if summaryPlayers[player.accountId] {
 							lossMsg += strings.Title(playerDb[player.accountId].name) + ", "
 							db.Exec("UPDATE players SET daily_loss = daily_loss + 1, weekly_loss = weekly_loss + 1, monthly_loss = monthly_loss + 1 WHERE account_id = " + player.accountId)
+							updateStreaks(player)
 						}
 						losers += 1
 
