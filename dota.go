@@ -360,12 +360,14 @@ func resetMonthlyStandings() {
 func updateStreaks(player PlayerData) {
 	streak := getPlayerStreak(db, player)
 
-	if player.win && streak >= 0 {
-		db.Exec("UPDATE players SET streak = streak + 1 WHERE account_id = " + player.accountId)
-	} else if !player.win && streak <= 0 {
-		db.Exec("UPDATE players SET streak = streak - 1 WHERE account_id = " + player.accountId)
-	} else {
+	if (streak < 0 && player.win) || (streak > 0 && !player.win) {
 		db.Exec("UPDATE players SET streak = 0 WHERE account_id = " + player.accountId)
+	}
+
+	if player.win {
+		db.Exec("UPDATE players SET streak = streak + 1 WHERE account_id = " + player.accountId)
+	} else {
+		db.Exec("UPDATE players SET streak = streak - 1 WHERE account_id = " + player.accountId)
 	}
 }
 
