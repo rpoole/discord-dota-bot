@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"time"
 	"log"
-	"math"
 	"os"
 	"flag"
 	"regexp"
@@ -267,74 +266,10 @@ func getPadLengthString(max int, name string) string {
 	return pad
 }
 
-func getStandings(report string) string {
-	var standings, sql string
-
-	if report == "day" {
-		standings = "```diff\nDaily Standings Report:\n"
-		sql = "SELECT name, daily_win, daily_loss, (daily_win - daily_loss) as net_win FROM players WHERE daily_win != 0 OR daily_loss != 0 ORDER BY net_win DESC, daily_win DESC, name ASC;"
-	} else if report == "week" {
-		standings = "```diff\nWeekly Standings Report:\n"
-		sql = "SELECT name, weekly_win, weekly_loss, (weekly_win - weekly_loss) as net_win FROM players WHERE weekly_win != 0 OR weekly_loss != 0 ORDER BY net_win DESC, weekly_win DESC, name ASC;"
-	} else if report == "month" {
-		standings = "```diff\nMonthly Standings Report:\n"
-		sql = "SELECT name, monthly_win, monthly_loss, (monthly_win - monthly_loss) as net_win FROM players WHERE monthly_win != 0 OR monthly_loss != 0 ORDER BY net_win DESC, monthly_win DESC, name ASC;"
-	}
-
-	max := getStringArrayMaxLength(playerDb)
-
-	for row, err := db.Query(sql); err == nil; err = row.Next() {
-		var name string
-		var win, loss int
-		var net_win float64
-		row.Scan(&name, &win, &loss, &net_win)
-
-		sign := " "
-		if win > loss {
-			sign = "+"
-		} else if win < loss {
-			sign = "-"
-		}
-
-		standings += fmt.Sprintf("%s %s %s %d - %d  %s%d\n", sign, strings.Title(name), getPadLengthString(max, name), win, loss, sign, int(math.Abs(net_win)))
-	}
-
-	standings += "```"
-
-	return standings
-}
-
-func getStreaks() string {
-	streaks := "```diff\nCurrent Streaks:\n"
-	sql := "SELECT name, streak FROM players WHERE streak > 1 OR streak < -1 ORDER BY streak DESC, name ASC"
-
-	max := getStringArrayMaxLength(playerDb)
-
-	for row, err := db.Query(sql); err == nil; err = row.Next() {
-		var name string
-		var streak float64
-		row.Scan(&name, &streak)
-
-		sign := " "
-		if streak > 0 {
-			sign = "+"
-		} else {
-			sign = "-"
-		}
-
-		streaks += fmt.Sprintf("%s %s %s %s%d\n", sign, strings.Title(name), getPadLengthString(max, name), sign, int(math.Abs(streak)))
-	}
-
-	streaks += "```"
-
-	return streaks
-}
-
 func resetWeeklyStandings() {
 	log.Println("Resetting Weekly Standings")
 
-	db.Exec("UPDATE players SET weekly_win = 0")
-	db.Exec("UPDATE players SET weekly_loss = 0")
+	db.Exec("UPDATE players SET weekly_win = 0, weekly_loss = 0, weekly_win_party = 0, weekly_loss_party = 0")
 
 	updateNextWeek(db)
 }
@@ -342,8 +277,7 @@ func resetWeeklyStandings() {
 func resetDailyStandings() {
 	log.Println("Resetting Daily Standings")
 
-	db.Exec("UPDATE players SET daily_win = 0")
-	db.Exec("UPDATE players SET daily_loss = 0")
+	db.Exec("UPDATE players SET daily_win = 0, daily_loss = 0, daily_win_party = 0, daily_loss_party = 0")
 
 	updateNextDay(db)
 }
@@ -351,8 +285,7 @@ func resetDailyStandings() {
 func resetMonthlyStandings() {
 	log.Println("Resetting Monthly Standings")
 
-	db.Exec("UPDATE players SET monthly_win = 0")
-	db.Exec("UPDATE players SET monthly_loss = 0")
+	db.Exec("UPDATE players SET monthly_win = 0, monthly_loss = 0, monthly_win_party, monthly_loss_party = 0")
 
 	updateNextMonth(db)
 }
@@ -497,24 +430,38 @@ func main() {
 				losers := 0
 
 				for _, player := range players {
+					if player.win {
+						winners += 1
+					} else {
+						losers += 1
+					}
+				}
+
+				for _, player := range players {
 					pad := getPadLengthString(max, playerDb[player.accountId].name + player.hero)
 
 					if player.win {
 						if summaryPlayers[player.accountId] {
 							winMsg += strings.Title(playerDb[player.accountId].name) + ", "
 							db.Exec("UPDATE players SET daily_win = daily_win + 1, weekly_win = weekly_win + 1, monthly_win = monthly_win + 1 WHERE account_id = " + player.accountId)
+
+							if winners > 1 {
+								db.Exec("UPDATE players SET daily_win_party = daily_win_party + 1, weekly_win_party = weekly_win_party + 1, monthly_win_party = monthly_win_party + 1 WHERE account_id = " + player.accountId)
+							}
 							updateStreaks(player)
 						}
-						winners += 1
 
 						winPlayersMsg += fmt.Sprintf(" > %s - %s %s%s-%s-%s\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
 					} else {
 						if summaryPlayers[player.accountId] {
 							lossMsg += strings.Title(playerDb[player.accountId].name) + ", "
 							db.Exec("UPDATE players SET daily_loss = daily_loss + 1, weekly_loss = weekly_loss + 1, monthly_loss = monthly_loss + 1 WHERE account_id = " + player.accountId)
+
+							if losers > 1 {
+								db.Exec("UPDATE players SET daily_win_party = daily_win_party + 1, weekly_win_party = weekly_win_party + 1, monthly_win_party = monthly_win_party + 1 WHERE account_id = " + player.accountId)
+							}
 							updateStreaks(player)
 						}
-						losers += 1
 
 						lossPlayersMsg += fmt.Sprintf(" > %s - %s %s%s-%s-%s\n", strings.Title(playerDb[player.accountId].name), player.hero, pad, player.kills, player.deaths, player.assists)
 					}

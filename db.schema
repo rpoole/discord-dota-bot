@@ -31,11 +31,20 @@ VALUES
 ALTER TABLE players ADD COLUMN daily_win tinyint DEFAULT 0;
 ALTER TABLE players ADD COLUMN daily_loss tinyint DEFAULT 0;
 
+ALTER TABLE players ADD COLUMN daily_win_party tinyint DEFAULT 0;
+ALTER TABLE players ADD COLUMN daily_loss_party tinyint DEFAULT 0;
+
 ALTER TABLE players ADD COLUMN weekly_win tinyint DEFAULT 0;
 ALTER TABLE players ADD COLUMN weekly_loss tinyint DEFAULT 0;
 
+ALTER TABLE players ADD COLUMN weekly_win_party tinyint DEFAULT 0;
+ALTER TABLE players ADD COLUMN weekly_loss_party tinyint DEFAULT 0;
+
 ALTER TABLE players ADD COLUMN monthly_win tinyint DEFAULT 0;
 ALTER TABLE players ADD COLUMN monthly_loss tinyint DEFAULT 0;
+
+ALTER TABLE players ADD COLUMN monthly_win_party tinyint DEFAULT 0;
+ALTER TABLE players ADD COLUMN monthly_loss_party tinyint DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS settings
 	(
