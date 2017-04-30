@@ -468,7 +468,7 @@ func main() {
 							db.Exec("UPDATE players SET daily_loss = daily_loss + 1, weekly_loss = weekly_loss + 1, monthly_loss = monthly_loss + 1 WHERE account_id = " + player.accountId)
 
 							if losers > 1 {
-								db.Exec("UPDATE players SET daily_win_party = daily_win_party + 1, weekly_win_party = weekly_win_party + 1, monthly_win_party = monthly_win_party + 1 WHERE account_id = " + player.accountId)
+								db.Exec("UPDATE players SET daily_loss_party = daily_loss_party + 1, weekly_loss_party = weekly_loss_party + 1, monthly_loss_party = monthly_loss_party + 1 WHERE account_id = " + player.accountId)
 							}
 							updateStreaks(player)
 						}
