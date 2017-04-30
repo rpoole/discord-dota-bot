@@ -33,6 +33,7 @@ var dg *discordgo.Session
 var err error
 
 var nameRegex = regexp.MustCompile(`^!nickname\s`)
+var commandRegex = regexp.MustCompile(`^!([a-z]*)\s([a-z]*)`)
 
 type BicepzBot struct{}
 
@@ -307,12 +308,21 @@ func updateStreaks(player PlayerData) {
 // Reads messages and sends responses
 func (bb *BicepzBot) MessageParser(s *discordgo.Session, m *discordgo.MessageCreate) {
 	words := string(m.Content)
+
+	// parses := commandRegex.FindAllStringSubmatch(words, -1)
+
 	if words == "!day" {
-		s.ChannelMessageSend(m.ChannelID, getStandings("day"))
+		s.ChannelMessageSend(m.ChannelID, getStandings("daily", ""))
+	} else if words == "!day party" {
+		s.ChannelMessageSend(m.ChannelID, getStandings("daily", "_party"))
 	} else if words == "!week" {
-		s.ChannelMessageSend(m.ChannelID, getStandings("week"))
+		s.ChannelMessageSend(m.ChannelID, getStandings("weekly", ""))
+	} else if words == "!week party" {
+		s.ChannelMessageSend(m.ChannelID, getStandings("weekly", "_party"))
 	} else if words == "!month" {
-		s.ChannelMessageSend(m.ChannelID, getStandings("month"))
+		s.ChannelMessageSend(m.ChannelID, getStandings("monthly", ""))
+	} else if words == "!month party" {
+		s.ChannelMessageSend(m.ChannelID, getStandings("monthly", "_party"))
 	} else if words == "!streaks" {
 		s.ChannelMessageSend(m.ChannelID, getStreaks())
 	} else if nameRegex.MatchString(words) {

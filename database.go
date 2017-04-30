@@ -61,19 +61,17 @@ func getNextMonth(db *sqlite3.Conn) time.Time {
 	return nextMonth
 }
 
-func getStandings(report string) string {
-	var standings, sql string
+func getStandings(report string, modifier string) string {
+	sql := fmt.Sprintf("SELECT name, %s_win%s, %s_loss%s, (%s_win%s - %s_loss%s) as net_win FROM players WHERE %s_win%s != 0 OR %s_loss%s != 0 ORDER BY net_win DESC, %s_win%s DESC, name ASC;",
+		report, modifier,report, modifier,report, modifier,report, modifier,report, modifier,report, modifier,report, modifier)
 
-	if report == "day" {
-		standings = "```diff\nDaily Standings Report:\n"
-		sql = "SELECT name, daily_win, daily_loss, (daily_win - daily_loss) as net_win FROM players WHERE daily_win != 0 OR daily_loss != 0 ORDER BY net_win DESC, daily_win DESC, name ASC;"
-	} else if report == "week" {
-		standings = "```diff\nWeekly Standings Report:\n"
-		sql = "SELECT name, weekly_win, weekly_loss, (weekly_win - weekly_loss) as net_win FROM players WHERE weekly_win != 0 OR weekly_loss != 0 ORDER BY net_win DESC, weekly_win DESC, name ASC;"
-	} else if report == "month" {
-		standings = "```diff\nMonthly Standings Report:\n"
-		sql = "SELECT name, monthly_win, monthly_loss, (monthly_win - monthly_loss) as net_win FROM players WHERE monthly_win != 0 OR monthly_loss != 0 ORDER BY net_win DESC, monthly_win DESC, name ASC;"
+	if modifier == "" {
+		modifier = ":"
+	} else {
+		modifier = " - Party:"
 	}
+
+	standings := fmt.Sprintf("```diff\n%s Standings Report%s\n", strings.Title(report), modifier)
 
 	max := getStringArrayMaxLength(playerDb)
 
