@@ -286,7 +286,7 @@ func resetDailyStandings() {
 func resetMonthlyStandings() {
 	log.Println("Resetting Monthly Standings")
 
-	db.Exec("UPDATE players SET monthly_win = 0, monthly_loss = 0, monthly_win_party, monthly_loss_party = 0")
+	db.Exec("UPDATE players SET monthly_win = 0, monthly_loss = 0, monthly_win_party = 0, monthly_loss_party = 0")
 
 	updateNextMonth(db)
 }
