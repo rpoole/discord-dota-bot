@@ -25,7 +25,9 @@ VALUES
 	("71493226", "scott"),
 	("149849638", "scott stack"),
 	("64744672", "david"),
-	("33197151", "greg")
+	("33197151", "greg"),
+	("256540212", "ralph - master stacker")
+
 ;
 
 ALTER TABLE players ADD COLUMN daily_win tinyint DEFAULT 0;
